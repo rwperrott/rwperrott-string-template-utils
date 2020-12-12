@@ -1,10 +1,10 @@
 # rwperrott-string-template-utils
 General utilities for use with [StringTemplate](http://www.stringtemplate.org/) v4 jar, with utilities for my rebuild of string-template-maven-plugin
 
-The core is allows far more powerful MethodHandle based replacements for the original Method based ObjectModelAdapter
-and StringRenderer, the ability to use parameterised methods in both the model class and compatible static methods in
-other class, thus allows easy bypass of the stupid no-null and boolean conditional restrictions of the StringTemplate
-interpreter.
+The invoke classes allows far more powerful MethodHandle based replacements for the original Method based
+ObjectModelAdapter and StringRenderer, the ability to use parameterised methods in both the model class and compatible
+static methods in other class, thus allows easy bypass of the stupid no-null and boolean conditional restrictions of
+the StringTemplate interpreter.
 
 Functionality includes:
 - A TypeConverter class, which make matching/conversion of property values to method parameter types easy.
@@ -22,6 +22,10 @@ Functionality includes:
 - A StringInvokeAdapter class, which extends InvokeAdapter for String type use.
 - A StringInvokeRender class, which extends AttributeRenderer and uses TypeFunctions to access instance String methods
   with no parameters and static methods accepting a String parameter, and possibly a Locale parameter.
+- A STContext class, to provide a context object to register AttributeRenders and ModelAdapters
+  on an STGroup from a `Map<String,String>` of type name and class name, with a class lookup cache, 
+  and attempt to patch of render error STMessages from annoying template relative line number to absolute
+  file line numbers, with a cache of template start line numbers in files.
 - Most of the classes are public for directly use or protected so that other libraries can extend them.
 
 The code was designed to be Thread-safe too, with minimal locking.
