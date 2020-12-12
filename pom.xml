@@ -15,7 +15,7 @@
 
     <groupId>rwperrott</groupId>
     <artifactId>rwperrott-string-template-utils</artifactId>
-    <version>2.2.1</version>
+    <version>2.2.2</version>
     <packaging>jar</packaging>
 
     <name>StringTemplate Utils</name>
@@ -98,12 +98,10 @@
                     <doctitle>StringTemplate Utils - ${project.version}</doctitle>
                     <windowtitle>StringTemplate Utils - ${project.version}</windowtitle>
                     <show>protected</show>
-                    <!--
                     <links>
                         A supported Java version unlike 1.6!
                         <link>https://docs.oracle.com/javase/8/docs/api/</link>
                     </links>
-                    -->
                 </configuration>
                 <executions>
                     <execution>
