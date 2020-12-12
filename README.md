@@ -26,6 +26,8 @@ Functionality includes:
   on an STGroup from a `Map<String,String>` of type name and class name, with a class lookup cache, 
   and attempt to patch of render error STMessages from annoying template relative line number to absolute
   file line numbers, with a cache of template start line numbers in files.
+- MultilineJoiner and ToStringBuilder class to build toString() values, with optional multi-line thread-safe indenting.
+- A STGroupType enum, providing a STGroup factory function and other STGroup sub-class specific functions. 
 - Most of the classes are public for directly use or protected so that other libraries can extend them.
 
 The code was designed to be Thread-safe too, with minimal locking.
