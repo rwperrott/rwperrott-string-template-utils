@@ -14,8 +14,8 @@
     </properties>
 
     <groupId>rwperrott</groupId>
-    <artifactId>string-template-utils</artifactId>
-    <version>2.2.0</version>
+    <artifactId>rwperrott-string-template-utils</artifactId>
+    <version>2.2.1</version>
     <packaging>jar</packaging>
 
     <name>StringTemplate Utils</name>

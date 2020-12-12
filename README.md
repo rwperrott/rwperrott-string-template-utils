@@ -1,4 +1,4 @@
-# string-template-utils
+# rwperrott-string-template-utils
 General utilities for use with [StringTemplate](http://www.stringtemplate.org/) v4 jar, with utilities for my rebuild of string-template-maven-plugin
 
 The core is allows far more powerful MethodHandle based replacements for the original Method based ObjectModelAdapter
