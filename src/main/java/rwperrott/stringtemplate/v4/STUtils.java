@@ -33,7 +33,7 @@ public class STUtils {
     }
 
     /**
-     * TODO: identify if used by anything.
+     * Used by plugin
      */
     public static class TypeAndURL {
 
@@ -47,7 +47,10 @@ public class STUtils {
 
     }
 
-    @SuppressWarnings("UseSpecificCatch")
+    /**
+     * Used by plugin
+     */
+    @SuppressWarnings({"UseSpecificCatch", "unused"})
     public static TypeAndURL resolveTypeAndURL(final String source, final Path defaultDir) throws IOException {
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(defaultDir, "defaultDir");
