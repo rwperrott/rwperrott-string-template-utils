@@ -21,6 +21,12 @@ import static java.lang.Class.forName;
 import static java.lang.String.format;
 
 /**
+ * Contains lazy cache maps for start line numbers of templates in files,
+ * and for class name to Class lookup.
+ *
+ * Provides methods to register AttributeRenders and ModelAdapters in an STGroup,
+ * and to try and replace a STMessage with a relative line numbers for one with an absolute line number.
+ *
  * @author rwperrott
  */
 public class STContext implements Closeable {

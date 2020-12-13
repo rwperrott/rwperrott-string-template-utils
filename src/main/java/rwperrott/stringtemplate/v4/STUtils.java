@@ -24,10 +24,17 @@ public class STUtils {
     }
     private static final Pattern TEMPLATE_PATTERN = compile("^([a-z][^( :]*)\\([^ :)]*\\) *::= *.*$", CASE_INSENSITIVE | MULTILINE);
 
+    /**
+     * Used to identify a source string as a template, and to identity and extract names for start line number
+     * mapping.  Group 1 is the name of the template.
+     */
     public static Matcher templateMatcher(final CharSequence cs) {
         return TEMPLATE_PATTERN.matcher(Objects.requireNonNull(cs, "cs"));
     }
 
+    /**
+     * TODO: identify if used by anything.
+     */
     public static class TypeAndURL {
 
         public final STGroupType type;
