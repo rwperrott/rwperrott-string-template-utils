@@ -32,5 +32,26 @@ Functionality includes:
 
 The code was designed to be Thread-safe too, with minimal locking.
 
+### Maven
+With my coordinates, if properly released:
+```xml
+<dependency>
+  <groupId>com.github.rwperrott</groupId>
+  <artifactId>rwperrott-string-template-utils</artifactId>
+  <version>2.2.3</version>
+</dependency>
+```
+
+The jars could be requested via jitpack.io, by using this repo.
+```xml
+<repositories>
+<repository>
+  <id>jitpack.io</id>
+  <url>https://jitpack.io</url>
+</repository>
+</repositories>
+```
+
+
 ### TODO
 - Consider adding more to the Javadocs or provide examples in Markdown files.

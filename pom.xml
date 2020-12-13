@@ -13,7 +13,7 @@
         <doclint>none</doclint>
     </properties>
 
-    <groupId>rwperrott</groupId>
+    <groupId>com.github.rwperrott</groupId>
     <artifactId>rwperrott-string-template-utils</artifactId>
     <version>2.2.3</version>
     <packaging>jar</packaging>
