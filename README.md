@@ -33,7 +33,6 @@ Functionality includes:
 The code was designed to be Thread-safe too, with minimal locking.
 
 ### Maven
-With my coordinates, if properly released:
 ```xml
 <dependency>
   <groupId>com.github.rwperrott</groupId>
@@ -42,7 +41,7 @@ With my coordinates, if properly released:
 </dependency>
 ```
 
-The jars could be requested via jitpack.io, by using this repo.
+The jars could be requested using jitpack.io; it does not appear to provide an index.
 ```xml
 <repositories>
 <repository>
