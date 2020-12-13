@@ -35,16 +35,12 @@ public final class TypeFunctions {
         private final Class<?> valueType;
 
         @SuppressWarnings("LeakingThisInConstructor")
-        private ByName(final Class<?> valueType) {
+        private ByName(final Class<?> valueType, final ByName superInstance) {
             dejaVu.add(valueType);
             this.valueType = valueType;
             ClassMembers.of(valueType).addTo(this);
-            // Shouldn't need to do this!
-            final Class<?> superType = valueType.getSuperclass();
-            if (null != superType) {
-                ByName parent = FOR_TYPE.computeIfAbsent(superType, ByName::new);
-                final ObjectSet<MemberInvoker> unique = new ObjectOpenHashSet<>();
-                mergeInstanceInvokers(unique, parent);
+            if (null != superInstance) {
+                mergeInstanceInvokers(new ObjectOpenHashSet<>(), superInstance);
             }
         }
 
@@ -130,9 +126,23 @@ public final class TypeFunctions {
             }
     }
 
+    private static ByName get0(Class<?> valueType) {
+        // Have to split get and put to avoid ConcurrentModificationException.
+        ByName byName = FOR_TYPE.get(valueType);
+        if (null != byName)
+            return byName;
+        ByName superInstance = null;
+        final Class<?> superType = valueType.getSuperclass();
+        if (null != superType) {
+            superInstance = get0(superType);
+        }
+        FOR_TYPE.put(valueType, byName = new ByName(valueType, superInstance));
+        return byName;
+    }
+
     private static ByName get(Class<?> valueType) {
         synchronized (FOR_TYPE) {
-            return FOR_TYPE.computeIfAbsent(valueType, ByName::new);
+            return get0(valueType);
         }
     }
 
