@@ -19,7 +19,11 @@ Functionality includes:
   hidden Composite Object driven by it's own hidden ModelAdapter, or a toString() call.  Chaining different types is
   possible, via lookup of the appropriate ModelHandler from the used STGroup.
   in the same property chain, via embedded ModelAdapter lookup.
-- A StringInvokeAdapter class, which extends InvokeAdapter for String type use.
+- An ObjectInvokeAdapter class, which extends InvokeAdapter for Object type use, including lookup for any
+  pre-registered static functions in other classes!
+- A NumberInvokeAdapter class, which extends AbstractInvokeAdapter for Number use, including some useful
+  named mathematical operators for Integer and Long values.
+- A StringInvokeAdapter class, which extends AbstractInvokeAdapter for String type use.
 - A StringInvokeRender class, which extends AttributeRenderer and uses TypeFunctions to access instance String methods
   with no parameters and static methods accepting a String parameter, and possibly a Locale parameter.
 - A STContext class, to provide a context object to register AttributeRenders and ModelAdapters
