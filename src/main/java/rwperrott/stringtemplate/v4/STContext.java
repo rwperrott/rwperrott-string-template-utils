@@ -11,42 +11,52 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.UncheckedIOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 
-import static java.lang.Class.forName;
 import static java.lang.String.format;
 
 /**
- * Contains lazy cache maps for start line numbers of templates in files,
- * and for class name to Class lookup.
- *
- * Provides methods to register AttributeRenders and ModelAdapters in an STGroup,
- * and to try and replace a STMessage with a relative line numbers for one with an absolute line number.
+ * Contains lazy cache maps for start line numbers of templates in files, and for class name to Class lookup.
+ * <p>
+ * Provides methods to register AttributeRenders and ModelAdapters in an STGroup, and to try and replace a STMessage
+ * with a relative line numbers for one with an absolute line number.
  *
  * @author rwperrott
  */
+@SuppressWarnings("unused")
 public class STContext implements Closeable {
-
-    private final Map<Object, Object2IntMap<String>> ST_GROUP_META_MAP = new HashMap<>();
-    private final ClassLoader registerClassLoader;
+    private final Map<Object, Object2IntMap<String>> stGroupMetaMap = new HashMap<>();
     private final BiConsumer<String, Throwable> errorLog;
-    private final Map<String, Class<?>> registerClassCache = new HashMap<>();
-    public STContext(final ClassLoader registerClassLoader,
+    private final ClassLoader classLoader;
+    private final Map<String, Class<?>> classCache = new HashMap<>();
+
+    public STContext(final BiConsumer<String, Throwable> errorLog) {
+        this(Thread.currentThread().getContextClassLoader(), errorLog);
+    }
+
+    public STContext(final ClassLoader classLoader,
                      final BiConsumer<String, Throwable> errorLog) {
-        Objects.requireNonNull(registerClassLoader, "registerClassLoader");
+        Objects.requireNonNull(classLoader, "classLoader");
         Objects.requireNonNull(errorLog, "errorLog");
-        this.registerClassLoader = registerClassLoader;
+
+        this.classLoader = classLoader;
         this.errorLog = errorLog;
     }
 
     @SuppressWarnings("RedundantThrows")
     @Override
     public void close() throws IOException {
-        // Not use currently, but may decide to
+        synchronized (stGroupMetaMap) {
+            stGroupMetaMap.clear();
+        }
+        synchronized (classCache) {
+            classCache.clear();
+        }
+        synchronized (supportedPackagePrefixes) {
+            supportedPackagePrefixes.clear();
+        }
     }
 
     public final void registerRenderers(final STGroup stGroup, Map<String, String> map) {
@@ -86,47 +96,47 @@ public class STContext implements Closeable {
     // Used by instanceOf
     private Class<?> getClass(final String label, final String className, Class<?> type) {
         // Make operation full atomic to avoid pointless puts
-        synchronized (registerClassCache) {
-            Class<?> cls = registerClassCache.get(className);
+        synchronized (classCache) {
+            Class<?> cls = classCache.get(className);
             if (null != cls) {
                 return cls;
             }
 
             // Expand simple names for java.lang package
             final int p = className.lastIndexOf('.');
-            if (-1 == p)
+            if (-1 == p) {
+                for (String packagePrefix : supportedPackagePrefixes)
+                    try {
+                        final String key = packagePrefix + className;
+                        cls = classLoader.loadClass(key); // With default ClassLoader
+                        if (!type.isAssignableFrom(cls)) {
+                            errorLog.accept(format("%s '%s' not an instanceof %s",
+                                                   label, className, type.getTypeName()), null);
+                            cls = null;
+                        }
+                        classCache.put(className, cls);
+                        // Also cache full key
+                        classCache.put(key, cls);
+                        return cls;
+                    } catch (ClassNotFoundException ignore) {
+                    }
+            } else {
                 try {
-                    final String key = JAVA_LANG_PREFIX + className;
-                    cls = forName(key); // With default ClassLoader
+                    cls = classLoader.loadClass(className);
                     if (!type.isAssignableFrom(cls)) {
                         errorLog.accept(format("%s '%s' not an instanceof %s",
                                                label, className, type.getTypeName()), null);
                         cls = null;
                     }
-                    registerClassCache.put(className, cls);
-                    // Also cache full key
-                    registerClassCache.put(key, cls);
-                    return cls;
-                } catch (ClassNotFoundException ignore) {
-                }
-
-            try {
-                cls = registerClassLoader.loadClass(className);
-                if (!type.isAssignableFrom(cls)) {
-                    errorLog.accept(format("%s '%s' not an instanceof %s",
-                                           label, className, type.getTypeName()), null);
+                } catch (ClassNotFoundException ex) {
+                    errorLog.accept(format("%s '%s' not found",
+                                           label, className), ex);
                     cls = null;
                 }
-            } catch (ClassNotFoundException ex) {
-                errorLog.accept(format("%s '%s' not found",
-                                       label, className), ex);
-                cls = null;
             }
-            registerClassCache.put(className, cls);
-            // Also cache simple key if java.lang package
-            if (className.regionMatches(0, JAVA_LANG_PREFIX, 0, JAVA_LANG_PREFIX.length())) {
-                registerClassCache.put(className.substring(p + 1), cls);
-            }
+            classCache.put(className, cls);
+            if (supportedPackagePrefixes.contains(className.substring(p + 1)))
+                classCache.put(className.substring(p + 1), cls);
             //
             return cls;
         }
@@ -142,6 +152,22 @@ public class STContext implements Closeable {
             errorLog.accept(format("%s '%s' (%s) instance construction failed",
                                    label, className, type.getTypeName()), null);
             return null;
+        }
+    }
+
+    /**
+     * Allow more package prefixes to be added, for class name to Class lookup.
+     *
+     * @param packagePrefix .
+     */
+    public void addPackagePrefix(String packagePrefix) {
+        packagePrefix = Objects.requireNonNull(packagePrefix, "packagePrefix");
+        if (packagePrefix.isEmpty())
+            throw new IllegalArgumentException("packagePrefix is blank");
+        if (packagePrefix.indexOf('.') == -1)
+            packagePrefix = packagePrefix.concat(".");
+        synchronized (supportedPackagePrefixes) {
+            supportedPackagePrefixes.add(packagePrefix);
         }
     }
 
@@ -185,12 +211,12 @@ public class STContext implements Closeable {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        synchronized (ST_GROUP_META_MAP) {
-            return ST_GROUP_META_MAP.computeIfAbsent(templateSource, k -> {
+        synchronized (stGroupMetaMap) {
+            return stGroupMetaMap.computeIfAbsent(templateSource, k -> {
                 final Object2IntMap<String> templateLineNumbers = new Object2IntLinkedOpenHashMap<>();
                 try (final LineNumberReader lnr = new LineNumberReader(type.openReader(stGroup, templateSource, encoding))) {
                     lnr.setLineNumber(1);
-                    for (String line; (line = lnr.readLine()) != null;) {
+                    for (String line; (line = lnr.readLine()) != null; ) {
                         final Matcher m = STUtils.templateMatcher(line);
                         if (m.matches()) {
                             templateLineNumbers.put(m.group(1), lnr.getLineNumber());
@@ -203,5 +229,10 @@ public class STContext implements Closeable {
             }).getOrDefault(templateName, -1);
         }
     }
-    static final String JAVA_LANG_PREFIX = "java.lang.";
+
+    private static final Set<String> supportedPackagePrefixes =
+            new HashSet<>(Arrays.asList(
+                    "java.lang.",
+                    "java.util."
+                                       ));
 }
