@@ -45,14 +45,13 @@ The code was designed to be Thread-safe too, with minimal locking.
 </dependency>
 ```
 
-The jars could be requested using jitpack.io; it does not appear to provide an index.
+The jars could be requested using jitpack.io.
+Jetpack does not appear to provide an index, at least for free use, so you probably won't see any coordinate hints in
 ```xml
-<repositories>
 <repository>
   <id>jitpack.io</id>
   <url>https://jitpack.io</url>
 </repository>
-</repositories>
 ```
 
 
