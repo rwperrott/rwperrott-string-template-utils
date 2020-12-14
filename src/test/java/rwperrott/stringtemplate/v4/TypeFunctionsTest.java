@@ -2,7 +2,7 @@ package rwperrott.stringtemplate.v4;
 
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.fail;
 
 public class TypeFunctionsTest {
     @Test
@@ -13,7 +13,7 @@ public class TypeFunctionsTest {
             new StringInvokeAdaptor();
         } catch (Throwable t) {
             t.printStackTrace();
-            fail("failed",t);
+            fail("failed", t);
         }
     }
 }

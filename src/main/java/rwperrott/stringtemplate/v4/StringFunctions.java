@@ -13,12 +13,26 @@ import java.util.Locale;
  * Sub-string functions, with wrapping of negative offset and len values.
  * <p>
  * Defaults registers methods from String, org.apache.commons.lang3.StringUtils,
- *
+ * <p>
  * I don't care about the StringTemplate developer's purity arguments, we need pragmatism like this, to make
  * StringTemplate a lot more usable.
  */
 @SuppressWarnings("unused")
 public final class StringFunctions {
+    public static void registerAdapterFunctions() {
+        registerRendererFunctions();
+
+        // Functions returning other type objects.
+        TypeFunctions.registerFunctionClasses(String.class,
+                                              Long.class,
+                                              Double.class,
+                                              Byte.class,
+                                              Short.class,
+                                              Integer.class,
+                                              Float.class
+                                             );
+    }
+
     /**
      * Function
      */
@@ -32,27 +46,13 @@ public final class StringFunctions {
                                              );
     }
 
-    public static void registerAdapterFunctions() {
-        registerRendererFunctions();
-
-        // Functions returning other type objects.
-        TypeFunctions.registerFunctionClasses(String.class,
-                                              Long.class,
-                                              Double.class,
-                                              Byte.class,
-                                              Short.class,
-                                              Integer.class,
-                                              Float.class
-                                              );
-    }
-
     /**
      * Return len character String from the start of v.
      *
      * @param value src
-     * @param len if less than zero, v length added
-     * @return "" if len less than or equal to zero;
-     *         v if len more than or equal to zero.
+     * @param len   if less than zero, v length added
+     *
+     * @return "" if len less than or equal to zero; v if len more than or equal to zero.
      */
     public static String leftstr(String value, int len) {
         final int n = value.length();
@@ -67,9 +67,9 @@ public final class StringFunctions {
      * Return len character String from the end of v.
      *
      * @param value src
-     * @param len if less than zero, v length added
-     * @return "" if len less than or equal to zero;
-     *         v if len more than or equal to zero.
+     * @param len   if less than zero, v length added
+     *
+     * @return "" if len less than or equal to zero; v if len more than or equal to zero.
      */
     public static String rightstr(String value, int len) {
         final int n = value.length();
@@ -81,10 +81,10 @@ public final class StringFunctions {
     }
 
     /**
-     *
-     * @param value src
+     * @param value  src
      * @param offset can be negative
-     * @param len if negative result is ""
+     * @param len    if negative result is ""
+     *
      * @return result of substr(offset, offset + len);
      */
     public static String midstr(String value, int offset, int len) {
@@ -94,7 +94,8 @@ public final class StringFunctions {
     /**
      * @param value src
      * @param start if negative set to 0
-     * @param end if more than v length, set to v length
+     * @param end   if more than v length, set to v length
+     *
      * @return result, "" if start more than or equal to end
      */
     public static String substr(String value, int start, int end) {
@@ -107,7 +108,9 @@ public final class StringFunctions {
     }
 
     /**
-     * Calls StringUtils::capitalize
+     * Calls StringUtils::capitalize.
+     * <p>
+     * Not done via alias to avoid clash with
      */
     public static String cap(String value) {
         return StringUtils.capitalize(value);
@@ -125,7 +128,7 @@ public final class StringFunctions {
     }
 
     /**
-     * Calls StringRenderer::escapeHTML
+     * Calls original StringRenderer::escapeHTML method, even if dubious.
      */
     public static String escapeHTML(String value) {
         return StringRenderer.escapeHTML(value);
@@ -161,7 +164,7 @@ public final class StringFunctions {
 
     /**
      * Calls WordUtils::capitalize to unmask it behind StringUtils::capitalize
-     * 
+     * <p>
      * Wouldn't be needed if the method naming had a "word" prefix, idiots!
      */
     public static String wordCapitalize(String value) {

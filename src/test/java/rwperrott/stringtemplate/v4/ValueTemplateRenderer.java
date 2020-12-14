@@ -21,7 +21,7 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
     private final List<String> properties = new ArrayList<>();
     private final List<String> wrappers = new ArrayList<>();
     protected String template;
-    protected Map<String, Object> attributes = new HashMap<>();
+    protected final Map<String, Object> attributes = new HashMap<>();
     protected STGroupString stg;
     protected ST st;
     private boolean failed;

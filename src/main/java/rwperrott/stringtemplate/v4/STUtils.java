@@ -4,32 +4,21 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
-import static java.nio.file.Files.exists;
-import static java.nio.file.Files.isRegularFile;
 import java.nio.file.Path;
-import static java.nio.file.Paths.get;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.nio.file.Files.exists;
+import static java.nio.file.Files.isRegularFile;
+import static java.nio.file.Paths.get;
 import static java.util.regex.Pattern.*;
 import static org.stringtemplate.v4.STGroup.GROUP_FILE_EXTENSION;
-import static rwperrott.stringtemplate.v4.STGroupType.directory;
-import static rwperrott.stringtemplate.v4.STGroupType.file;
-import static rwperrott.stringtemplate.v4.STGroupType.string;
+import static rwperrott.stringtemplate.v4.STGroupType.*;
 
 public class STUtils {
 
     private STUtils() {
-    }
-    private static final Pattern TEMPLATE_PATTERN = compile("^([a-z][^( :]*)\\([^ :)]*\\) *::= *.*$", CASE_INSENSITIVE | MULTILINE);
-
-    /**
-     * Used to identify a source string as a template, and to identity and extract names for start line number
-     * mapping.  Group 1 is the name of the template.
-     */
-    public static Matcher templateMatcher(final CharSequence cs) {
-        return TEMPLATE_PATTERN.matcher(Objects.requireNonNull(cs, "cs"));
     }
 
     /**
@@ -46,6 +35,7 @@ public class STUtils {
         }
 
     }
+    private static final Pattern TEMPLATE_PATTERN = compile("^([a-z][^( :]*)\\([^ :)]*\\) *::= *.*$", CASE_INSENSITIVE | MULTILINE);
 
     /**
      * Used by plugin
@@ -55,8 +45,8 @@ public class STUtils {
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(defaultDir, "defaultDir");
         final STGroupType type;
-            // Check contains a template String
-            if (STUtils.templateMatcher(source).find()) {
+        // Check contains a template String
+        if (STUtils.templateMatcher(source).find()) {
             return new TypeAndURL(string, null);
         }
 
@@ -67,8 +57,8 @@ public class STUtils {
             type = directory;
         } else {
             type = source.endsWith(GROUP_FILE_EXTENSION)
-                    ? file
-                    : directory;
+                   ? file
+                   : directory;
             // Try direct conversion to a URL
             try {
                 return new TypeAndURL(type, new URI(source).normalize().toURL());
@@ -93,5 +83,13 @@ public class STUtils {
 
         // Convert to URL, for STGroup creation
         return new TypeAndURL(type, path.toUri().toURL());
+    }
+
+    /**
+     * Used to identify a source string as a template, and to identity and extract names for start line number mapping.
+     * Group 1 is the name of the template.
+     */
+    public static Matcher templateMatcher(final CharSequence cs) {
+        return TEMPLATE_PATTERN.matcher(Objects.requireNonNull(cs, "cs"));
     }
 }

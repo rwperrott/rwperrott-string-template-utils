@@ -29,6 +29,13 @@ final class MemberInvokersImpl extends ArrayList<MemberInvoker> implements Membe
         maxTypeConverterCount = -1;
     }
 
+    @Override
+    public void sort(Comparator<? super MemberInvoker> c) {
+        super.sort(c);
+        if (-1 == maxTypeConverterCount)
+            index0();
+    }
+
     /**
      * Push out all
      */
@@ -41,13 +48,6 @@ final class MemberInvokersImpl extends ArrayList<MemberInvoker> implements Membe
 
     void sort() {
         sort(Comparator.naturalOrder());
-    }
-
-    @Override
-    public void sort(Comparator<? super MemberInvoker> c) {
-        super.sort(c);
-        if (-1 == maxTypeConverterCount)
-            index0();
     }
 
     private void index0() {

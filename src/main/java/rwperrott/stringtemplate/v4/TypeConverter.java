@@ -1,5 +1,7 @@
 package rwperrott.stringtemplate.v4;
 
+import lombok.NonNull;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -7,7 +9,6 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.NonNull;
 
 /**
  * Handles conversion of StringArgs to Object[].
@@ -23,8 +24,8 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
     private final Class<?> type;
     private final UnaryOperator<Object> converter;
 
-    private TypeConverter(@NonNull final int compareValue, 
-                          @NonNull final Class<?> type, 
+    private TypeConverter(@NonNull final int compareValue,
+                          @NonNull final Class<?> type,
                           @NonNull final UnaryOperator<Object> converter) {
         this.compareValue = compareValue;
         this.type = type;
@@ -250,11 +251,10 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
     }
 
     /**
-     * Allow external code to a new TypeConverter, or replace placeholder entries, while retaining original a
-     * order.
+     * Allow external code to a new TypeConverter, or replace placeholder entries, while retaining original a order.
      */
     @SuppressWarnings({"unused", "SynchronizationOnLocalVariableOrMethodParameter"})
-    public static void register(@NonNull Class<?> type, 
+    public static void register(@NonNull Class<?> type,
                                 @NonNull UnaryOperator<Object> converter) {
         final Map<Class<?>, TypeConverter> converterMap = CONVERTER_MAP;
         synchronized (converterMap) {
@@ -330,8 +330,8 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
     /**
      * Used by MemberInvoker::convert
      */
-    static boolean convert(@NonNull final List<Object> args, 
-                           @NonNull final TypeConverter[] typeAdapters, 
+    static boolean convert(@NonNull final List<Object> args,
+                           @NonNull final TypeConverter[] typeAdapters,
                            int extrasLen) {
         final int n = args.size();
         if (n != typeAdapters.length)

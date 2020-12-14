@@ -1,13 +1,18 @@
 package rwperrott.stringtemplate.v4;
 
-import it.unimi.dsi.fastutil.objects.*;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectRBTreeMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 import static rwperrott.stringtemplate.v4.TypeConverter.box;
 
@@ -38,7 +43,7 @@ public final class ClassMembers {
 
     static {
         // Preload some classes
-        Class<?>[] classes ={Class.class,Object.class,String.class,Number.class};
+        Class<?>[] classes = {Class.class, Object.class, String.class, Number.class};
         for (Class<?> cls : classes)
             cache.put(cls, new ClassMembers(cls));
     }
@@ -94,7 +99,7 @@ public final class ClassMembers {
                         TypeConverter.toTypeConverters(parameterTypes);
                 if (null != typeConverters) {
                     // Fix for match all, never convert, bug for equals(Object), which caused erroneous false results.
-                    if (typeConverters.length==1 && parameterTypes[0] == Object.class && m.getName().equals("equals"))
+                    if (typeConverters.length == 1 && parameterTypes[0] == Object.class && m.getName().equals("equals"))
                         typeConverters[0] = TypeConverter.toTypeConverter(cls);
                     instanceInvokers_
                             .computeIfAbsent(m.getName(), MemberInvokersImpl::new)

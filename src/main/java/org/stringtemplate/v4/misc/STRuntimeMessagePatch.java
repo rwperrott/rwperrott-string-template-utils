@@ -13,13 +13,13 @@ public class STRuntimeMessagePatch extends STRuntimeMessage {
 
     @Override
     public String getSourceLocation() {
-        if ( ip<0 || self==null || self.impl==null ) return null;
+        if (ip < 0 || self == null || self.impl == null) return null;
         Interval I = self.impl.sourceMap[ip];
-        if ( I==null ) return null;
+        if (I == null) return null;
         // Count line and charPos to I.a position
         final String s = self.impl.template;
-        int  p = 0, index = I.a, line = absoluteStartLineNumber, charPos = 0;
-        while (p < index ) {
+        int p = 0, index = I.a, line = absoluteStartLineNumber, charPos = 0;
+        while (p < index) {
             switch (s.charAt(p++)) {
                 case '\r':
                     if (p < index && s.charAt(p) == '\n')
@@ -34,6 +34,6 @@ public class STRuntimeMessagePatch extends STRuntimeMessage {
             }
         }
 
-        return new Coordinate(line,charPos).toString();
+        return new Coordinate(line, charPos).toString();
     }
 }

@@ -1,7 +1,6 @@
 package rwperrott.stringtemplate.v4;
 
 /**
- *
  * @author rwperrott
  */
 interface MultilineAppender {

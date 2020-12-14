@@ -17,15 +17,6 @@ class Test extends ValueTemplateRenderer<Test> {
     }
 
     @Override
-    public Test a(final String name, final Object value) {
-        try {
-            return super.a(name, value);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
-    }
-
-    @Override
     public Test a(final Map<String, Object> attributes) {
         try {
             return super.a(attributes);
@@ -38,6 +29,15 @@ class Test extends ValueTemplateRenderer<Test> {
     public Test v(final Object value) {
         try {
             return super.v(value);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    @Override
+    public Test a(final String name, final Object value) {
+        try {
+            return super.a(name, value);
         } catch (Exception e) {
             throw new AssertionError(e);
         }

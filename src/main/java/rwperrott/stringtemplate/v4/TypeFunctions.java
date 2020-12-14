@@ -3,9 +3,9 @@ package rwperrott.stringtemplate.v4;
 import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
+import lombok.NonNull;
 
 import java.util.*;
-import lombok.NonNull;
 
 /**
  * Cache a Map of instance and static methods for each valueType, via filtered ClassCaches.
@@ -16,14 +16,15 @@ public final class TypeFunctions {
     }
 
     /**
-     * Passed to ClassMembers, to provide a safe way for ClassMembers to inject
-     * Type functions into ByName, without making the source values public.
+     * Passed to ClassMembers, to provide a safe way for ClassMembers to inject Type functions into ByName, without
+     * making the source values public.
      */
     interface FunctionsMap {
         Class<?> valueType();
 
         void mergeInstanceInvokers(final ObjectSet<MemberInvoker> unique,
                                    final Map<String, MemberInvokersImpl> instanceInvokers);
+
         void mergeStaticInvokers(final ObjectSet<MemberInvoker> unique,
                                  final Map<String, MemberInvokersImpl> staticInvokers);
     }
@@ -76,7 +77,7 @@ public final class TypeFunctions {
 
         @Override
         public void mergeStaticInvokers(final ObjectSet<MemberInvoker> unique,
-                                           final Map<String, MemberInvokersImpl> staticInvokers) {
+                                        final Map<String, MemberInvokersImpl> staticInvokers) {
             staticInvokers.forEach((name, v) -> {
                 final MemberInvokersImpl to =
                         computeIfAbsent(name, MemberInvokersImpl::new);
@@ -112,7 +113,7 @@ public final class TypeFunctions {
     /**
      * First a any static methods from type class.
      *
-     * @param valueType          the main parameter type of the static function methods
+     * @param valueType       the main parameter type of the static function methods
      * @param functionClasses the classes containing the static function methods
      */
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
@@ -150,7 +151,7 @@ public final class TypeFunctions {
     public static MemberInvokers get(Class<?> valueType, String memberName) {
         final ByName byName = get(valueType);
         synchronized (byName) {
-            final MemberInvokersImpl mis= byName.get(memberName);
+            final MemberInvokersImpl mis = byName.get(memberName);
             if (null == mis)
                 return MemberInvokers.NONE;
             mis.sort();

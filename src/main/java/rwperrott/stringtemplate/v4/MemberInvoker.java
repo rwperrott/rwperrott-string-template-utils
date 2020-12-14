@@ -22,9 +22,15 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
 
     private final int h;
 
+    @SuppressWarnings("unused")
     protected MemberInvoker(final TypeConverter[] typeConverters) {
         this.h = Arrays.hashCode(typeConverters());
     }
+
+    /**
+     * Hidden, so don't have to copy it, used by compareTo
+     */
+    protected abstract TypeConverter[] typeConverters();
 
     public abstract boolean isReturnTypeInstanceOf(Class<?> type);
 
@@ -36,11 +42,6 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
     public boolean convert(final List<Object> args, int extrasLen) {
         return TypeConverter.convert(args, typeConverters(), extrasLen);
     }
-
-    /**
-     * Hidden, so don't have to copy it, used by compareTo
-     */
-    protected abstract TypeConverter[] typeConverters();
 
     @Override
     public final int hashCode() {
@@ -99,16 +100,6 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
             this.member = requireNonNull(member, "field");
             this.methodHandle = requireNonNull(methodHandle, "methodHandle");
         }
-
-        /*
-        public final Member member() {
-            return member;
-        }
-
-        public final Class<?> boxedReturnType() {
-            return boxedReturnType;
-        }
-        */
 
         public final boolean isReturnTypeInstanceOf(Class<?> type) {
             return type == boxedReturnType || type.isAssignableFrom(boxedReturnType);
@@ -208,7 +199,7 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
             if (null == valueIndexOf)
                 return null;
             final int valueIndex = valueIndexOf.getInt(cls);
-            if (-1==valueIndex)
+            if (-1 == valueIndex)
                 return null;
             //
             final TypeConverter[] from = ForStaticMethod.this.typeConverters;
@@ -291,23 +282,23 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
     }
 
     static MemberInvoker forField(final Class<?> boxedReturnType,
-                                         final Field member,
-                                         final MethodHandle methodHandle) {
+                                  final Field member,
+                                  final MethodHandle methodHandle) {
         return new ForField(boxedReturnType, member, methodHandle);
     }
 
     static MemberInvoker forMethod(final Class<?> boxedReturnType,
-                                          final Method member,
-                                          final MethodHandle methodHandle,
-                                          final TypeConverter[] typeAdapters) {
+                                   final Method member,
+                                   final MethodHandle methodHandle,
+                                   final TypeConverter[] typeAdapters) {
         return new ForMethod(boxedReturnType, member, methodHandle, typeAdapters);
     }
 
     static MemberInvoker forStaticMethod(final Class<?> boxedReturnType,
-                                                final Method member,
-                                                final MethodHandle methodHandle,
-                                                final TypeConverter[] typeAdapters,
-                                                final TypeIndexMap valueIndexOf) {
+                                         final Method member,
+                                         final MethodHandle methodHandle,
+                                         final TypeConverter[] typeAdapters,
+                                         final TypeIndexMap valueIndexOf) {
         return new ForStaticMethod(boxedReturnType, member, methodHandle, typeAdapters, valueIndexOf);
     }
 }

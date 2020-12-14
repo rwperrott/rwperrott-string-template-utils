@@ -5,6 +5,7 @@ import org.stringtemplate.v4.ST;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import static java.util.Objects.requireNonNull;
 
 
@@ -13,17 +14,17 @@ import static java.util.Objects.requireNonNull;
  */
 public final class ToStringBuilder extends MultiLineJoiner {
 
-    public ToStringBuilder(final StringBuilder sb,
-            final String className,
-            final boolean multiline) {
-        super(sb, className +" { ", "}", multiline);
-        requireNonNull(className, "className");
-        sb.append(className).append(" { ");
-    }
-
     public ToStringBuilder(final String className,
                            final boolean multiline) {
         this(new StringBuilder(), className, multiline);
+    }
+
+    public ToStringBuilder(final StringBuilder sb,
+                           final String className,
+                           final boolean multiline) {
+        super(sb, className + " { ", "}", multiline);
+        requireNonNull(className, "className");
+        sb.append(className).append(" { ");
     }
 
     public ToStringBuilder(final MultiLineJoiner mlj,
@@ -65,7 +66,7 @@ public final class ToStringBuilder extends MultiLineJoiner {
                     mlj.sb().append("[]");
                     return false;
                 }
-                final MultiLineJoiner j = new MultiLineJoiner(mlj,"[","]");
+                final MultiLineJoiner j = new MultiLineJoiner(mlj, "[", "]");
                 col.forEach(v -> {
                     j.delimit();
                     Append.toString(mlj, v);
@@ -82,8 +83,8 @@ public final class ToStringBuilder extends MultiLineJoiner {
                     mlj.sb().append("{}");
                     return false;
                 }
-                final MultiLineJoiner j = new MultiLineJoiner(mlj,"{","}");
-                map.forEach((k,v)-> {
+                final MultiLineJoiner j = new MultiLineJoiner(mlj, "{", "}");
+                map.forEach((k, v) -> {
                     j.addName(k.toString());
                     Append.toString(j, v);
                 });

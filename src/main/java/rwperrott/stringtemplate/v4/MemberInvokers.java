@@ -6,6 +6,24 @@ import java.util.List;
  * Provided, so don't have to w an extended ArrayList in another object, to prevent modification.
  */
 public interface MemberInvokers {
+    /**
+     * Used by AbstractInvokeAdaptor
+     */
+    int maxTypeConverterCount();
+
+    default MemberInvoker find(final boolean onlyPublic,
+                               final Class<?> returnType,
+                               final List<Object> args) {
+        return find(onlyPublic, returnType, args, 0);
+    }
+
+    /**
+     * Used by AbstractInvokeAdaptor and StringInvokeRenderer
+     */
+    MemberInvoker find(final boolean onlyPublic,
+                       final Class<?> returnType,
+                       final List<Object> args,
+                       final int extrasLen);
     MemberInvokers NONE = new MemberInvokers() {
         @Override
         public int maxTypeConverterCount() {
@@ -17,22 +35,4 @@ public interface MemberInvokers {
             return null;
         }
     };
-    /**
-     * Used by AbstractInvokeAdaptor
-     */
-    int maxTypeConverterCount();
-
-    /**
-     * Used by AbstractInvokeAdaptor and StringInvokeRenderer
-     */
-    MemberInvoker find(final boolean onlyPublic,
-                       final Class<?> returnType,
-                       final List<Object> args,
-                       final int extrasLen);
-
-    default MemberInvoker find(final boolean onlyPublic,
-                       final Class<?> returnType,
-                       final List<Object> args) {
-        return find(onlyPublic, returnType, args, 0);
-    }
 }

@@ -2,7 +2,7 @@ package rwperrott.stringtemplate.v4;
 
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
 import static rwperrott.stringtemplate.v4.StringFunctions.*;
 
 public class StringFunctionsTest {

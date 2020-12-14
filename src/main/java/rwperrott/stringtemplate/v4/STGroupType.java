@@ -27,11 +27,12 @@ public enum STGroupType implements MultilineAppender {
      */
     string(STGroupString.class) {
         private STGroupString as(final Object o) {
-            return (STGroupString) Objects.requireNonNull(o,"o");
+            return (STGroupString) Objects.requireNonNull(o, "o");
         }
+
         @Override
         public STGroup getSTGroup(String sourceName, String source, URL url, String encoding) {
-            return new STGroupString(Objects.requireNonNull(sourceName,"sourceName"), Objects.requireNonNull(source,"source"));
+            return new STGroupString(Objects.requireNonNull(sourceName, "sourceName"), Objects.requireNonNull(source, "source"));
         }
 
         @Override
@@ -71,8 +72,9 @@ public enum STGroupType implements MultilineAppender {
      */
     file(STGroupFile.class) {
         private STGroupFile as(final Object o) {
-            return (STGroupFile) Objects.requireNonNull(o,"o");
+            return (STGroupFile) Objects.requireNonNull(o, "o");
         }
+
         @Override
         public STGroup getSTGroup(String sourceName, String source, URL url, String encoding) {
             return new STGroupFile(url, encoding,
@@ -86,7 +88,7 @@ public enum STGroupType implements MultilineAppender {
             final ToStringBuilder ts = new ToStringBuilder(mlj, "STGroupFile");
             //ts.add("fileName", stg.fileName);
             ts.add("url", stg.url);
-            ts.add("importedGroups",stg.getImportedGroups());
+            ts.add("importedGroups", stg.getImportedGroups());
             ts.complete();
             return true;
         }
@@ -109,7 +111,7 @@ public enum STGroupType implements MultilineAppender {
 
         @Override
         Reader openReader(final STGroup stGroup, final Object source, final String encoding) throws IOException {
-            return new InputStreamReader(((URL)source).openStream(),encoding);
+            return new InputStreamReader(((URL) source).openStream(), encoding);
         }
     },
     /**
@@ -117,21 +119,23 @@ public enum STGroupType implements MultilineAppender {
      */
     directory(STGroupDir.class) {
         private STGroupDir as(final Object o) {
-            return (STGroupDir) Objects.requireNonNull(o,"o");
+            return (STGroupDir) Objects.requireNonNull(o, "o");
         }
+
         @Override
         public STGroup getSTGroup(String sourceName, String source, URL url, String encoding) {
             return new STGroupDir(url, encoding,
                                   STGroup.defaultGroup.delimiterStartChar,
                                   STGroup.defaultGroup.delimiterStopChar);
         }
+
         @Override
         public boolean appendTo(final MultiLineJoiner mlj, final Object o) {
             final STGroupDir stg = as(o);
             final ToStringBuilder ts = new ToStringBuilder(mlj, "STGroupDir");
             //ts.add("groupDirName", stg.groupDirName);
             ts.add("root", stg.root);
-            ts.add("importedGroups",stg.getImportedGroups());
+            ts.add("importedGroups", stg.getImportedGroups());
             ts.complete();
             return true;
         }
@@ -162,7 +166,7 @@ public enum STGroupType implements MultilineAppender {
 
         @Override
         Reader openReader(final STGroup stGroup, final Object source, final String encoding) throws IOException {
-            return new InputStreamReader(((URL)source).openStream(),encoding);
+            return new InputStreamReader(((URL) source).openStream(), encoding);
         }
     };
     //
@@ -195,6 +199,8 @@ public enum STGroupType implements MultilineAppender {
     public static STGroupType of(final STGroup stGroup) {
         Objects.requireNonNull(stGroup, "stGroup");
         return MAP.computeIfAbsent(stGroup.getClass(),
-                                   k-> {throw  new IllegalArgumentException(k.toString());});
+                                   k -> {
+                                       throw new IllegalArgumentException(k.toString());
+                                   });
     }
 }

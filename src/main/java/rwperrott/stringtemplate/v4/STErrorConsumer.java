@@ -9,7 +9,7 @@ import java.util.function.BiConsumer;
  * Simplified interface of Group and Template
  */
 @SuppressWarnings("unused")
-public interface STErrorConsumer extends STErrorListener, BiConsumer<String,STMessage> {
+public interface STErrorConsumer extends STErrorListener, BiConsumer<String, STMessage> {
     default void compileTimeError(STMessage msg) {
         accept("ST CompileTime", msg);
     }
