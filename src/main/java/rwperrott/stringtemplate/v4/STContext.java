@@ -183,18 +183,23 @@ public class STContext implements Closeable {
         Objects.requireNonNull(encoding, "encoding");
         if (msg instanceof STRuntimeMessage) {
             final STRuntimeMessage strm = (STRuntimeMessage) msg;
-            final InstanceScope scope = strm.scope;
+            InstanceScope scope = strm.scope;
             if (null != scope) {
+                do {
+                    final ST st = scope.st;
+                    final String name = st.getName().substring(1);
+                    final STGroup stGroup = st.groupThatCreatedThisInstance;
+                    final int n = getTemplateLineNumber(stGroup, encoding, name);
+                    if (n != -1)
+                        return new STRuntimeMessagePatch((STRuntimeMessage) msg, n);
+                    scope = scope.parent;
+                } while (scope != null);
+                scope = strm.scope;
                 final ST st = scope.st;
                 final String name = st.getName().substring(1);
                 final STGroup stGroup = st.groupThatCreatedThisInstance;
-                final int n = getTemplateLineNumber(stGroup, encoding, name);
-                if (n == -1) {
-                    throw new IllegalStateException(format("start line not found for template %s in %s:%s",
-                                                           name, stGroup.getClass().getSimpleName(), STGroupType.of(stGroup).getSource(stGroup)));
-                } else {
-                    return new STRuntimeMessagePatch((STRuntimeMessage) msg, n);
-                }
+                throw new IllegalStateException(format("start line not found for template %s in %s:%s",
+                                                       name, stGroup.getClass().getSimpleName(), STGroupType.of(stGroup).getSource(stGroup)));
             }
         }
         // Probably don't need to patch
