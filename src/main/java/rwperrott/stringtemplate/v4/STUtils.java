@@ -20,7 +20,7 @@ import static java.util.regex.Pattern.*;
 import static org.stringtemplate.v4.STGroup.GROUP_FILE_EXTENSION;
 import static rwperrott.stringtemplate.v4.STGroupType.*;
 
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class STUtils {
 
     private STUtils() {
@@ -98,7 +98,8 @@ public class STUtils {
         return TEMPLATE_PATTERN.matcher(Objects.requireNonNull(cs, "cs"));
     }
 
-    public static void validateAttributes(final Map<?,?> map, final String label, final int checkDepth) {
+    @SuppressWarnings("unchecked")
+    public static <V> Map<String, V> validateAttributes(final Map<?,?> map, final String label, final int checkDepth) {
         map.forEach((k, v) -> {
             if (k.getClass() != String.class)
                 throw new IllegalArgumentException(format("non-String key %s:%s in %s",
@@ -107,6 +108,7 @@ public class STUtils {
                 validateAttributes((Map<?,?>)v, label, checkDepth-1);
             }
         });
+        return (Map<String, V>) map;
     }
 
     public static void removeAttributes(final ST st, Map<String,?> attributes) {
