@@ -97,10 +97,13 @@ public class STUtils {
         return TEMPLATE_PATTERN.matcher(Objects.requireNonNull(cs, "cs"));
     }
 
-
     public static void removeAttributes(final ST st, Map<String,?> attributes) {
         if (null != attributes)
             attributes.forEach((k,v) -> st.remove(k));
+    }
+
+    public static void clearAttributes(final ST st, Map<String,?> attributes) {
+        removeAttributes(st,st.getAttributes());
     }
 
     public static void applyAttributes(final ST st, Map<String,?> attributes) {
