@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.String.format;
 import static java.nio.file.Files.exists;
 import static java.nio.file.Files.isRegularFile;
 import static java.nio.file.Paths.get;
@@ -95,6 +96,17 @@ public class STUtils {
      */
     public static Matcher templateMatcher(final CharSequence cs) {
         return TEMPLATE_PATTERN.matcher(Objects.requireNonNull(cs, "cs"));
+    }
+
+    public static void validateAttributes(final Map<?,?> map, final String label, final int checkDepth) {
+        map.forEach((k, v) -> {
+            if (k.getClass() != String.class)
+                throw new IllegalArgumentException(format("non-String key %s:%s in %s",
+                                                          k.getClass().getName(), k.toString(), label));
+            if (checkDepth > 0 && v instanceof Map) {
+                validateAttributes((Map<?,?>)v, label, checkDepth-1);
+            }
+        });
     }
 
     public static void removeAttributes(final ST st, Map<String,?> attributes) {
