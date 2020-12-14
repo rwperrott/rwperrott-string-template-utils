@@ -9,6 +9,7 @@ import org.stringtemplate.v4.misc.STMessage;
 import java.util.*;
 
 import static java.lang.String.format;
+import static rwperrott.stringtemplate.v4.STUtils.applyAttributes;
 
 /**
  * Useful for rendering simple templates based on a "v" attribute
@@ -105,7 +106,7 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
             st = stg.getInstanceOf("test");
             if (null == st)
                 throw new STException("failed to create st", null);
-            attributes.forEach(st::add);
+            applyAttributes(st, attributes);
             r = st.render();
         } catch (Exception e) {
             ex = e;

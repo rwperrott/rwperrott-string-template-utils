@@ -1,10 +1,13 @@
 package rwperrott.stringtemplate.v4;
 
+import org.stringtemplate.v4.ST;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,6 +19,7 @@ import static java.util.regex.Pattern.*;
 import static org.stringtemplate.v4.STGroup.GROUP_FILE_EXTENSION;
 import static rwperrott.stringtemplate.v4.STGroupType.*;
 
+@SuppressWarnings("unused")
 public class STUtils {
 
     private STUtils() {
@@ -91,5 +95,21 @@ public class STUtils {
      */
     public static Matcher templateMatcher(final CharSequence cs) {
         return TEMPLATE_PATTERN.matcher(Objects.requireNonNull(cs, "cs"));
+    }
+
+
+    public static void removeAttributes(final ST st, Map<String,?> attributes) {
+        if (null != attributes)
+            attributes.forEach((k,v) -> st.remove(k));
+    }
+
+    public static void applyAttributes(final ST st, Map<String,?> attributes) {
+        if (null != attributes)
+            attributes.forEach((k, v) -> {
+                if (null == v)
+                    st.remove(k);
+                else
+                    st.add(k, v);
+            });
     }
 }
