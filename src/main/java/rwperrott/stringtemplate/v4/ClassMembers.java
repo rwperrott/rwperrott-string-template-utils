@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.objects.ObjectSet;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -74,37 +75,58 @@ public final class ClassMembers {
         }
         //
         for (final Method m : cls.getDeclaredMethods()) {
-            final Class<?> returnType = box(m.getReturnType());
-            if (returnType == Void.class)
-                continue;
-            //
-            final MethodHandle mh;
             try {
-                mh = lookup.unreflect(m);
-            } catch (IllegalAccessException e) {
-                continue;
+                final Class<?> returnType = box(m.getReturnType());
+                if (returnType == Void.class)
+                    continue;
+                //
+                final boolean isStatic = Modifier.isStatic(m.getModifiers());
+                if (isStatic && 0 == m.getParameterCount())
+                    continue;
+                //
+                final Class<?>[] parameterTypes = m.getParameterTypes();
+                if (isStatic) {
+                    final TypeIndexMap valueIndexOf = new TypeIndexMap();
+                    final TypeConverter[] typeConverters =
+                            TypeConverter.toTypeConverters(parameterTypes, valueIndexOf);
+                    if (null != typeConverters) {
+                        final MethodHandle mh = lookup.unreflect(m);
+                        staticInvokers_
+                                .computeIfAbsent(m.getName(), MemberInvokersImpl::new)
+                                .add(MemberInvoker.forStaticMethod(returnType, m, mh, typeConverters, valueIndexOf));
+                    }
+                } else {
+                    final TypeConverter[] typeConverters =
+                            TypeConverter.toTypeConverters(parameterTypes);
+                    if (null != typeConverters) {
+                        // Fix for match all, never convert, bug for equals(Object), which caused erroneous false results.
+                        if (typeConverters.length == 1 && parameterTypes[0] == Object.class && m.getName().equals("equals"))
+                            typeConverters[0] = TypeConverter.toTypeConverter(cls);
+                        final MethodHandle mh = lookup.unreflect(m);
+                        instanceInvokers_
+                                .computeIfAbsent(m.getName(), MemberInvokersImpl::new)
+                                .add(MemberInvoker.forMethod(returnType, m, mh, typeConverters));
+                    }
+                }
+            } catch (IllegalAccessException ignore) {
             }
-            //
-            final Class<?>[] parameterTypes = m.getParameterTypes();
-            if (Modifier.isStatic(m.getModifiers())) {
+        }
+        //
+        final String simpleName = cls.getSimpleName();
+        for (final Constructor<?> c : cls.getDeclaredConstructors()) {
+            if (0 == c.getParameterCount())
+                continue;
+            try {
                 final TypeIndexMap valueIndexOf = new TypeIndexMap();
                 final TypeConverter[] typeConverters =
-                        TypeConverter.toTypeConverters(parameterTypes, valueIndexOf);
-                if (null != typeConverters)
-                    staticInvokers_
-                            .computeIfAbsent(m.getName(), MemberInvokersImpl::new)
-                            .add(MemberInvoker.forStaticMethod(returnType, m, mh, typeConverters, valueIndexOf));
-            } else {
-                final TypeConverter[] typeConverters =
-                        TypeConverter.toTypeConverters(parameterTypes);
+                        TypeConverter.toTypeConverters(c.getParameterTypes(), valueIndexOf);
                 if (null != typeConverters) {
-                    // Fix for match all, never convert, bug for equals(Object), which caused erroneous false results.
-                    if (typeConverters.length == 1 && parameterTypes[0] == Object.class && m.getName().equals("equals"))
-                        typeConverters[0] = TypeConverter.toTypeConverter(cls);
-                    instanceInvokers_
-                            .computeIfAbsent(m.getName(), MemberInvokersImpl::new)
-                            .add(MemberInvoker.forMethod(returnType, m, mh, typeConverters));
+                    final MethodHandle mh = lookup.unreflectConstructor(c);
+                    staticInvokers_
+                            .computeIfAbsent(simpleName, MemberInvokersImpl::new)
+                            .add(MemberInvoker.forConstructor(cls, c, mh, typeConverters, valueIndexOf));
                 }
+            } catch (IllegalAccessException ignore) {
             }
         }
 
