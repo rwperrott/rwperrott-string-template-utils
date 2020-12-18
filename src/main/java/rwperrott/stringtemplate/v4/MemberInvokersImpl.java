@@ -3,12 +3,14 @@ package rwperrott.stringtemplate.v4;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
  * Only for package use
  */
-final class MemberInvokersImpl extends ArrayList<MemberInvoker> implements MemberInvokers {
+final class MemberInvokersImpl implements MemberInvokers, Consumer<MemberInvoker>, Iterable<MemberInvoker> {
+    private final ArrayList<MemberInvoker> list = new ArrayList<>();
     final String name;
     private int maxTypeConverterCount = -1;
     /**
@@ -21,28 +23,62 @@ final class MemberInvokersImpl extends ArrayList<MemberInvoker> implements Membe
     }
 
     public void clear() {
-        super.clear();
+        list.clear();
         unindex();
+    }
+
+    @Override
+    public void accept(final MemberInvoker memberInvoker) {
+        list.add(memberInvoker);
+    }
+
+    public void ensureCapacity(int minCapacity) {
+        list.ensureCapacity(minCapacity);
+    }
+
+    public int size() {
+        return list.size();
+    }
+
+    @Override
+    public Iterator<MemberInvoker> iterator() {
+        return list.iterator();
+    }
+
+    public Stream<MemberInvoker> stream() {
+        return list.stream();
+    }
+
+    @Override
+    public void forEach(final Consumer<? super MemberInvoker> action) {
+        list.forEach(action);
+    }
+
+    @Override
+    public Spliterator<MemberInvoker> spliterator() {
+        return list.spliterator();
     }
 
     private void unindex() {
         maxTypeConverterCount = -1;
     }
 
-    @Override
     public void sort(Comparator<? super MemberInvoker> c) {
-        super.sort(c);
+        list.sort(c);
         if (-1 == maxTypeConverterCount)
             index0();
     }
 
     /**
-     * Push out all
+     * Get all member invokers with a parameter matching valueType.
+     *
+     * Only supported by MemberInvoker.WithValueType<br/>
+     * i.e. MemberInvoker.ForStaticMethod and MemberInvoker.ForConstructor
      */
-    Stream<MemberInvoker.ForStaticMethod.ForValueType> functionStream(final Class<?> valueType) {
-        return stream()
-                .filter(MemberInvoker.ForStaticMethod.class::isInstance)
-                .map(mi -> ((MemberInvoker.ForStaticMethod) mi).forValueType(valueType))
+    Stream<MemberInvoker> functionStream(final Class<?> valueType) {
+        return list.stream()
+                .filter(MemberInvoker.WithValueType.class::isInstance)
+                .map(mi -> ((MemberInvoker.WithValueType) mi).forValueType(valueType))
                 .filter(Objects::nonNull);
     }
 
@@ -51,16 +87,16 @@ final class MemberInvokersImpl extends ArrayList<MemberInvoker> implements Membe
     }
 
     private void index0() {
-        if (isEmpty())
+        if (list.isEmpty())
             throw new IllegalArgumentException("empty");
         //
-        final int size = size();
-        final int maxTypeConverterCount = get(size - 1).typeConverterCount();
+        final int size = list.size();
+        final int maxTypeConverterCount = list.get(size - 1).typeConverterCount();
         final int[] subIndex_ = IntArrays.ensureCapacity(subIndex, (1 + maxTypeConverterCount) << 1);
         Arrays.fill(subIndex, -1);
         int iSubIndex = 0, iSubIndexP = -1, i = 0;
         while (i < size) {
-            final MemberInvoker mi = get(i);
+            final MemberInvoker mi = list.get(i);
             iSubIndex = mi.typeConverterCount() << 1;
             if (iSubIndex != iSubIndexP) {
                 if (iSubIndexP != -1)
@@ -77,12 +113,13 @@ final class MemberInvokersImpl extends ArrayList<MemberInvoker> implements Membe
 
     @Override
     public synchronized String toString() {
-        return "MemberInvokersImpl{" +
-               "name=" + name +
-               ", maxTypeConverterCount=" + maxTypeConverterCount +
-               ", subIndex=" + Arrays.toString(subIndex) +
-               ", list=" + super.toString() +
-               '}';
+        ToStringBuilder t = new ToStringBuilder("MemberInvokersImpl",true);
+        t.add("name",name);
+        t.add("maxTypeConverterCount", maxTypeConverterCount);
+        t.add("subIndex", subIndex);
+        t.add("list", list);
+        t.complete();
+        return t.toString();
     }
 
     /**
@@ -113,7 +150,7 @@ final class MemberInvokersImpl extends ArrayList<MemberInvoker> implements Membe
         int i = subIndex[x];
         int n = subIndex[x + 1];
         while (i < n) {
-            MemberInvoker mi = get(i++);
+            MemberInvoker mi = list.get(i++);
             if (mi.isAccessible(onlyPublic) &&
                 mi.isReturnTypeInstanceOf(returnType) &&
                 mi.convert(args, extrasLen))
