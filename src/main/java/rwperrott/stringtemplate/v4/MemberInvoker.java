@@ -1,10 +1,7 @@
 package rwperrott.stringtemplate.v4;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.reflect.Field;
-import java.lang.reflect.Member;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,66 +15,28 @@ import static java.util.Objects.requireNonNull;
  * Only compares parameters, because should already be group by name, return type should already have been filtered
  * out.
  */
-public abstract class MemberInvoker implements Comparable<MemberInvoker> {
+public interface MemberInvoker extends Comparable<MemberInvoker> {
+    TypeConverter[] typeConverters();
 
-    private final int h;
+    boolean isReturnTypeInstanceOf(Class<?> type);
 
-    @SuppressWarnings("unused")
-    protected MemberInvoker(final TypeConverter[] typeConverters) {
-        this.h = Arrays.hashCode(typeConverters());
-    }
-
-    /**
-     * Hidden, so don't have to copy it, used by compareTo
-     */
-    protected abstract TypeConverter[] typeConverters();
-
-    public abstract boolean isReturnTypeInstanceOf(Class<?> type);
-
-    public abstract boolean isAccessible(boolean onlyPublic);
+    boolean isAccessible(boolean onlyPublic);
 
     @SuppressWarnings("unused")
-    abstract boolean isStatic();
+    boolean isStatic();
 
-    public boolean convert(final List<Object> args, int extrasLen) {
+    default boolean convert(final List<Object> args, int extrasLen) {
         return TypeConverter.convert(args, typeConverters(), extrasLen);
     }
 
-    @Override
-    public final int hashCode() {
-        return h;
-    }
 
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (!(o instanceof MemberInvoker))
-            return false;
-        final MemberInvoker that = (MemberInvoker) o;
-        return Arrays.equals(typeConverters(), that.typeConverters());
-    }
+    int typeConverterCount();
 
-    public final int compareTo(MemberInvoker other) {
-        final TypeConverter[] t1 = typeConverters();
-        final TypeConverter[] t2 = other.typeConverters();
-        if (t1 == t2)
-            return 0; // Fast exit for Fields and zero non-v parameter methods.
-        int r = Integer.compare(t1.length, t2.length);
-        if (r != 0)
-            return r;
-        for (int i = 0, n = t1.length; i < n; i++) {
-            r = t1[i].compareTo(t2[i]);
-            if (r != 0)
-                return r;
-        }
-        return 0;
-    }
+    Object invoke(final Object value, final List<Object> args) throws Throwable;
 
-    public abstract int typeConverterCount();
+    abstract class Abstract<M extends Member> implements MemberInvoker {
 
-    public abstract Object invoke(final Object value, final List<Object> args) throws Throwable;
-
-    private static abstract class Abstract<M extends Member> extends MemberInvoker {
+        private final int h;
         /**
          * Metadata unreflected to MethodHandle.
          */
@@ -95,7 +54,7 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
                            final M member,
                            final MethodHandle methodHandle,
                            final TypeConverter[] typeConverters) {
-            super(typeConverters);
+            this.h = Arrays.hashCode(typeConverters);
             this.boxedReturnType = boxedReturnType;
             this.member = requireNonNull(member, "field");
             this.methodHandle = requireNonNull(methodHandle, "methodHandle");
@@ -113,13 +72,138 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
             return Modifier.isStatic(member.getModifiers());
         }
 
+        public final boolean convert(final List<Object> args, int extrasLen) {
+            return TypeConverter.convert(args, typeConverters(), extrasLen);
+        }
+
+        /**
+         * used by ForValueType::invoke
+         */
+        final Object invoke(final int valueIndex, final Object value, List<Object> srcArgs) throws Throwable {
+            final int argsLength = typeConverters().length;
+            final Object[] args = new Object[argsLength];
+            for (int i = 0, j = 0; i < argsLength; i++)
+                args[i] = (i == valueIndex) ? value : srcArgs.get(j++);
+            return methodHandle.invokeWithArguments(args);
+        }
+
+        @Override
+        public final int hashCode() {
+            return h;
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MemberInvoker))
+                return false;
+            final MemberInvoker that = (MemberInvoker) o;
+            return Arrays.equals(typeConverters(), that.typeConverters());
+        }
+
+        public final int compareTo(MemberInvoker other) {
+            final TypeConverter[] t1 = typeConverters();
+            final TypeConverter[] t2 = other.typeConverters();
+            if (t1 == t2)
+                return 0; // Fast exit for Fields and zero non-v parameter methods.
+            int r = Integer.compare(t1.length, t2.length);
+            if (r != 0)
+                return r;
+            for (int i = 0, n = t1.length; i < n; i++) {
+                r = t1[i].compareTo(t2[i]);
+                if (r != 0)
+                    return r;
+            }
+            return 0;
+        }
+
         @Override
         public String toString() {
             return member.toString();
         }
     }
 
-    static final class ForField extends Abstract<Field> {
+    abstract class AbstractForValueType<M extends Member> implements MemberInvoker {
+        private final int h;
+
+        final Abstract<M> parent;
+        final int valueIndex;
+        final TypeConverter[] typeConverters;
+
+        public AbstractForValueType(final Abstract<M> parent, final int valueIndex, final TypeConverter[] typeConverters) {
+            this.h = Arrays.hashCode(typeConverters);
+            this.parent = parent;
+            this.valueIndex = valueIndex;
+            this.typeConverters = typeConverters;
+        }
+
+        @Override
+        public final TypeConverter[] typeConverters() {
+            return typeConverters;
+        }
+
+        @Override
+        public final boolean isReturnTypeInstanceOf(final Class<?> type) {
+            return parent.isReturnTypeInstanceOf(type);
+        }
+
+        @Override
+        public final boolean isAccessible(final boolean onlyPublic) {
+            return parent.isAccessible(onlyPublic);
+        }
+
+        @Override
+        public final boolean isStatic() {
+            return parent.isStatic();
+        }
+
+        @Override
+        public final boolean convert(final List<Object> args, final int extrasLen) {
+            return TypeConverter.convert(args, typeConverters(), extrasLen);
+        }
+
+        @Override
+        public final int typeConverterCount() {
+            return typeConverters.length;
+        }
+
+        @Override
+        public final Object invoke(final Object value, final List<Object> args) throws Throwable {
+            return parent.invoke(valueIndex, value, args);
+        }
+
+        @Override
+        public final int hashCode() {
+            return h;
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MemberInvoker))
+                return false;
+            final MemberInvoker that = (MemberInvoker) o;
+            return Arrays.equals(typeConverters(), that.typeConverters());
+        }
+
+        public final int compareTo(MemberInvoker other) {
+            final TypeConverter[] t1 = typeConverters();
+            final TypeConverter[] t2 = other.typeConverters();
+            if (t1 == t2)
+                return 0; // Fast exit for Fields and zero non-v parameter methods.
+            int r = Integer.compare(t1.length, t2.length);
+            if (r != 0)
+                return r;
+            for (int i = 0, n = t1.length; i < n; i++) {
+                r = t1[i].compareTo(t2[i]);
+                if (r != 0)
+                    return r;
+            }
+            return 0;
+        }
+    }
+
+    final class ForField extends Abstract<Field> {
 
         private ForField(final Class<?> boxedReturnType,
                          final Field member,
@@ -142,9 +226,18 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
                    ? methodHandle.invokeExact()
                    : methodHandle.bindTo(value).invokeExact();
         }
+
+
+        @Override
+        public String toString() {
+            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForField",true);
+            t.add("field", member);
+            t.complete();
+            return t.toString();
+        }
     }
 
-    static class ForMethod extends Abstract<Method> {
+    class ForMethod extends Abstract<Method> {
         /**
          * Of parameterTypes convertable from String, used for keying and matching.
          */
@@ -181,9 +274,22 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
                 args[i] = srcArgs.get(i);
             return mh.invokeWithArguments(args);
         }
+
+        @Override
+        public String toString() {
+            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForMethod",true);
+            t.add("method", member);
+            t.add("typeConverters", typeConverters);
+            t.complete();
+            return t.toString();
+        }
     }
 
-    static class ForStaticMethod extends ForMethod {
+    interface WithValueType extends MemberInvoker {
+        MemberInvoker forValueType(final Class<?> cls);
+    }
+
+    class ForStaticMethod extends ForMethod implements WithValueType {
         final TypeIndexMap valueIndexOf;
 
         private ForStaticMethod(final Class<?> boxedReturnType,
@@ -195,7 +301,7 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
             this.valueIndexOf = requireNonNull(valueIndexOf, "typeIndexOf");
         }
 
-        ForValueType forValueType(final Class<?> cls) {
+        public MemberInvoker forValueType(final Class<?> cls) {
             if (null == valueIndexOf)
                 return null;
             final int valueIndex = valueIndexOf.getInt(cls);
@@ -210,73 +316,121 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
                     continue;
                 to[toI++] = from[fromI];
             }
-            return new ForValueType(valueIndex, to);
+            return new ForValueType(this, valueIndex, to);
         }
 
         @Override
         public String toString() {
-            return "StaticMethod{" +
-                   "member=" + member +
-                   "valueIndexOf=" + valueIndexOf +
-                   '}';
+            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForStaticMethod",true);
+            t.add("method", member);
+            t.add("valueIndexOf",valueIndexOf);
+            t.complete();
+            return t.toString();
         }
 
-        /**
-         * used by ForValueType::invoke
-         */
-        protected final Object invoke(final int valueIndex, final Object value, List<Object> srcArgs) throws Throwable {
-            final int argsLength = typeConverters.length;
-            final Object[] args = new Object[argsLength];
-            for (int i = 0, j = 0; i < argsLength; i++)
-                args[i] = (i == valueIndex) ? value : srcArgs.get(j++);
-            return methodHandle.invokeWithArguments(args);
-        }
-
-        public final class ForValueType extends MemberInvoker {
-            final int valueIndex;
-            final TypeConverter[] otherTypeConverters;
-
-            private ForValueType(final int valueIndex, final TypeConverter[] otherTypeConverters) {
-                super(otherTypeConverters);
-                this.valueIndex = valueIndex;
-                this.otherTypeConverters = otherTypeConverters;
-            }
-
-            @Override
-            public boolean isReturnTypeInstanceOf(final Class<?> type) {
-                return ForStaticMethod.this.isReturnTypeInstanceOf(type);
-            }
-
-            @Override
-            public boolean isAccessible(final boolean onlyPublic) {
-                return ForStaticMethod.this.isAccessible(onlyPublic);
-            }
-
-            @Override
-            public boolean isStatic() {
-                return ForStaticMethod.this.isStatic();
-            }
-
-            @Override
-            protected TypeConverter[] typeConverters() {
-                return otherTypeConverters;
-            }
-
-            @Override
-            public int typeConverterCount() {
-                return otherTypeConverters.length;
-            }
-
-            public final Object invoke(final Object value, List<Object> args) throws Throwable {
-                return ForStaticMethod.this.invoke(valueIndex, value, args);
+        public static final class ForValueType extends AbstractForValueType<Method> {
+            private ForValueType(final ForStaticMethod parent,
+                                 final int valueIndex,
+                                 final TypeConverter[] typeConverters) {
+                super(parent, valueIndex, typeConverters);
             }
 
             @Override
             public String toString() {
-                return "StaticMethod.ForValueType{" +
-                       "member=" + member +
-                       "valueIndex=" + valueIndex +
-                       '}';
+                ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForStaticMethod.ForValueType",true);
+                t.add("parent", parent);
+                t.add("valueIndex",valueIndex);
+                t.add("typeConverters",typeConverters);
+                t.complete();
+                return t.toString();
+            }
+        }
+    }
+
+    class ForConstructor extends Abstract<Constructor<?>> implements WithValueType {
+        /**
+         * Of parameterTypes convertable from String, used for keying and matching.
+         */
+        protected final TypeConverter[] typeConverters;
+        final TypeIndexMap valueIndexOf;
+
+        private ForConstructor(final Class<?> cls,
+                                final Constructor<?> constructor,
+                                final MethodHandle methodHandle,
+                                final TypeConverter[] typeConverters,
+                                final TypeIndexMap valueIndexOf) {
+            super(cls, constructor, methodHandle, typeConverters);
+            this.typeConverters = requireNonNull(typeConverters, "typeAdapters");
+            this.valueIndexOf = requireNonNull(valueIndexOf, "typeIndexOf");
+        }
+
+        @Override
+        public final TypeConverter[] typeConverters() {
+            return typeConverters;
+        }
+
+        @Override
+        public final int typeConverterCount() {
+            return typeConverters.length;
+        }
+
+
+        public final Object invoke(final Object value, final List<Object> srcArgs) throws Throwable {
+            MethodHandle mh = methodHandle;
+            if (!isStatic())
+                mh = mh.bindTo(value);
+            //
+            final int argsLength = typeConverters.length;
+            if (argsLength == 0)
+                return mh.invoke();
+            final Object[] args = new Object[argsLength];
+            for (int i = 0; i < argsLength; i++)
+                args[i] = srcArgs.get(i);
+            return mh.invokeWithArguments(args);
+        }
+
+        public MemberInvoker forValueType(final Class<?> cls) {
+            if (null == valueIndexOf)
+                return null;
+            final int valueIndex = valueIndexOf.getInt(cls);
+            if (-1 == valueIndex)
+                return null;
+            //
+            final TypeConverter[] from = ForConstructor.this.typeConverters;
+            final int fromN = from.length;
+            final TypeConverter[] to = new TypeConverter[fromN - 1];
+            for (int fromI = 0, toI = 0; fromI < fromN; fromI++) {
+                if (fromI == valueIndex)
+                    continue;
+                to[toI++] = from[fromI];
+            }
+            return new ForValueType(this, valueIndex, to);
+        }
+
+        @Override
+        public String toString() {
+            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForConstructor",true);
+            t.add("constructor", member);
+            t.add("valueIndexOf",valueIndexOf);
+            t.complete();
+            return t.toString();
+        }
+
+        public static final class ForValueType extends AbstractForValueType<Constructor<?>> {
+            private ForValueType(final ForConstructor parent,
+                                 final int valueIndex,
+                                 final TypeConverter[] typeConverters) {
+                super(parent, valueIndex, typeConverters);
+            }
+
+            @Override
+            public String toString() {
+                ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForConstructor.ForValueType",true);
+                t.add("parent", parent);
+                t.add("valueIndex",valueIndex);
+                t.add("typeConverters",typeConverters);
+                t.complete();
+                return t.toString();
             }
         }
     }
@@ -300,5 +454,13 @@ public abstract class MemberInvoker implements Comparable<MemberInvoker> {
                                          final TypeConverter[] typeAdapters,
                                          final TypeIndexMap valueIndexOf) {
         return new ForStaticMethod(boxedReturnType, member, methodHandle, typeAdapters, valueIndexOf);
+    }
+
+    static MemberInvoker forConstructor(final Class<?> boxedReturnType,
+                                         final Constructor<?> member,
+                                         final MethodHandle methodHandle,
+                                         final TypeConverter[] typeAdapters,
+                                         final TypeIndexMap valueIndexOf) {
+        return new ForConstructor(boxedReturnType, member, methodHandle, typeAdapters, valueIndexOf);
     }
 }
