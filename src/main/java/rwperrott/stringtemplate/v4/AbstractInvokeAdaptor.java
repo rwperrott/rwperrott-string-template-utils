@@ -1,23 +1,22 @@
 package rwperrott.stringtemplate.v4;
 
+import lombok.NonNull;
 import org.stringtemplate.v4.Interpreter;
 import org.stringtemplate.v4.ModelAdaptor;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroup;
 import org.stringtemplate.v4.misc.STNoSuchPropertyException;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.StringJoiner;
+import java.util.*;
+import java.util.concurrent.locks.StampedLock;
 import java.util.function.UnaryOperator;
 
 /**
- * This provides most/all the functionality to create fra more powerful ModelAdapters which can use an objects fields
- * and make parameterised use of it's instance/static methods and static methods of other registered class.
+ * This provides most/all the functionality to create powerful ModelAdapters which can use an objects fields
+ * and make parameterised use of it's instance/static methods, plus static methods in any other registered class.
  * <p>
- * Uses unreflected and cached HethodHandles to invoke Field getters and Methods, which is a lot faster than the
- * redundant Security costs of calling invoke on Field or Method objects.
+ * Uses unreflected and cached MethodHandles to invoke Field getters and Methods, which is a lot faster than the
+ * redundant Security costs of calling invoke on Field or Method Member objects.
  *
  * @param <T> type to be adapted
  */
@@ -52,12 +51,12 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
                 return invoker.invoke(model, args);
             }
 
-            final Composite r = new Composite(interp, self, model, propertyName, onlyPublic, Object.class, mis);
+            final ArgsAdaptor r = new ArgsAdaptor(interp, self, model, propertyName, onlyPublic, Object.class, mis);
 
-            // Ensure that COMPOSITE_ADAPTER is registered to handle Composite objects.
+            // Ensure that COMPOSITE_ADAPTER is registered to handle ArgsAdaptor objects.
             final STGroup stg = self.groupThatCreatedThisInstance;
-            if (COMPOSITE_ADAPTER != stg.getModelAdaptor(Composite.class))
-                stg.registerModelAdaptor(Composite.class, COMPOSITE_ADAPTER);
+            if (COMPOSITE_ADAPTER != stg.getModelAdaptor(ArgsAdaptor.class))
+                stg.registerModelAdaptor(ArgsAdaptor.class, COMPOSITE_ADAPTER);
 
             return r;
         } catch (Throwable t) {
@@ -72,9 +71,9 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
     /**
      * Only created if memberInvokers.maxTypeConverterCount() more than zero.
      * <p>
-     * Caries Interpreter and ST, so can resolve excess properties.
+     * Carries Interpreter and ST, so can resolve excess properties, via requested ModelAdapter.
      */
-    private static final class Composite implements UnaryOperator<Object> {
+    private static final class ArgsAdaptor implements UnaryOperator<Object> {
         private final Interpreter interp;
         private final ST self;
         private final boolean onlyPublic;
@@ -82,16 +81,22 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
         private final Object value;
         private final String propertyName;
         private final MemberInvokers memberInvokers;
+        // Lock for args and latestMatchingInvoker, especially against debugger!
+        private final StampedLock debugLock = new StampedLock();
         private final List<Object> args = new ArrayList<>();
-        private MemberInvoker invoker;
+        /**
+         * Saved, so can be invoke last
+         */
+        private MemberInvoker latestMatchingInvoker;
+        private String string;
 
-        public Composite(final Interpreter interp,
-                         final ST self,
-                         final Object value,
-                         final String propertyName,
-                         final boolean onlyPublic,
-                         final Class<?> returnType,
-                         final MemberInvokers memberInvokers) {
+        private ArgsAdaptor(final Interpreter interp,
+                            final ST self,
+                            final Object value,
+                            final String propertyName,
+                            final boolean onlyPublic,
+                            final Class<?> returnType,
+                            final MemberInvokers memberInvokers) {
             this.interp = interp;
             this.self = self;
             this.onlyPublic = onlyPublic;
@@ -101,71 +106,100 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
             this.memberInvokers = memberInvokers;
 
             // Allow for 0..n args methods
-            final MemberInvoker test = memberInvokers.find(onlyPublic, returnType, args);
-            if (null != test)
-                invoker = test;
+            final MemberInvoker mi = memberInvokers.find(onlyPublic, returnType, args);
+            if (null != mi)
+                latestMatchingInvoker = mi; // The latest best match
         }
 
         @Override
-        public Object apply(final Object o) {
-            args.add(o);
-            MemberInvoker test = memberInvokers.find(onlyPublic, returnType, args);
-            if (null != test)
-                invoker = test; // The latest best match
-            return args.size() < memberInvokers.maxTypeConverterCount()
-                   ? this
-                   : invoke();
-        }
-
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        Object invoke() {
-            Object r = null;
-            int i = 0;
-            final int n = args.size();
+        public Object apply(final @NonNull Object o) {
+            // Protect args and latestMatchingInvoker.
+            long stamp = debugLock.writeLock();
             try {
-                if (null == invoker)
-                    throw new IllegalArgumentException("No suitable field, method, or static method found");
-                r = invoker.invoke(value, args);
-                // Resolve each excess property, using the appropriate model adapter.
-                final STGroup stg = self.groupThatCreatedThisInstance;
-                i = invoker.typeConverterCount();
-                while (i < n) {
-                    final Object arg = args.get(i++);
-                    final ModelAdaptor ma = stg.getModelAdaptor(arg.getClass());
-                    if (null == ma)
-                        throw new IllegalStateException("No ModelAdapter for " + arg.getClass().getTypeName());
-                    r = ma.getProperty(interp, self, r, arg, arg.toString());
-                }
-                return r;
-            } catch (Throwable t) {
-                // Must use a copy of args to avoid damage by toString(), during debug!
-                final StringJoiner sj = new StringJoiner(".");
-                if (i == 0) {
-                    add(sj, propertyName);
-                    args.forEach(arg -> add(sj, arg));
-                } else {
-                    add(sj, r);
-                    args.subList(i, n).forEach(arg -> add(sj, arg));
-                }
-                throw STExceptions.noSuchPropertyInObject(value, sj.toString(), t);
+                args.add(o);
+                final MemberInvoker mi = memberInvokers.find(onlyPublic, returnType, args);
+                if (null != mi)
+                    latestMatchingInvoker = mi;
+                return args.size() < memberInvokers.maxTypeConverterCount()
+                       ? this
+                       : invoke(); // No matches after this, so use latestMatchingInvoker
+            } finally {
+                debugLock.unlockWrite(stamp);
             }
         }
 
+        // Called by apply or toString.
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        private Object invoke() {
+            final long stamp = debugLock.readLock();
+            try {
+                int i = 0, n = args.size();
+                if (null == latestMatchingInvoker)
+                    throw STExceptions.noSuchPropertyInObject(value,join(propertyName, args, i, n),
+                                                              new IllegalArgumentException("No matching member found"));
+                //
+                Object result = null;
+                try {
+                    // Some of the properties found a longest match method, so can resolve model and some properties to an object result.
+                    result = latestMatchingInvoker.invoke(value, args);
+
+                    // For each excess property:
+                    //    call getModelAdapter and getProperty, to part/fully resolving property.
+                    // Part resolved properties can be ArgsAdaptor instances.
+                    final STGroup stg = self.groupThatCreatedThisInstance;
+                    i = latestMatchingInvoker.typeConverterCount();
+                    while (i < n) {
+                        final Object arg = args.get(i++);
+                        final ModelAdaptor ma = stg.getModelAdaptor(arg.getClass()); // Assume never can be null
+                        result = ma.getProperty(interp, self, result, arg, arg.toString());
+                    }
+                    return result;
+                } catch (Throwable t) { // Catch failure of latestMatchingInvoker.invoke or later failure.
+                    throw STExceptions.noSuchPropertyInObject(value, join(result, args, i, n), t);
+                }
+            } finally {
+                debugLock.unlockRead(stamp);
+            }
+        }
+
+        private static String join(final Object result,
+                                   final List<Object> args, int i, int n) {
+            final StringJoiner sj = new StringJoiner(".");
+            add(sj, result);
+            while (i < n)
+                add(sj, args.get(i++));
+            return sj.toString();
+        }
+
+        // Used to build noSuchPropertyInObject property String
         private static void add(StringJoiner sj, Object o) {
             if (o instanceof CharSequence)
-                sj.add(o.toString());
+                // Add ("string")
+                sj.add(String.format("(\"%s\")", o));
             else
-                sj.add(String.format("%s{%s}", o.getClass().getSimpleName(), o));
+                // Add {type:"string"}
+                sj.add(String.format("{%s:\"%s\"}", o.getClass().getSimpleName(), o));
         }
 
         /**
          * Must call invoke, in case no more properties after last one.
          */
         public String toString() {
-            return invoke().toString();
+            long stamp = debugLock.tryReadLock();
+            if (0 == stamp)
+                return "locked:" + string; // Only for debug to see a stale value, to prevent prematurely invoke call.
+            try {
+                return string = invoke().toString();
+            } finally {
+                debugLock.unlockRead(stamp);
+            }
         }
     }
 
-    private static final ModelAdaptor<Composite> COMPOSITE_ADAPTER =
+    /*
+     * model is a ArgsAdaptor, a UnaryOperator.
+     * apply returns the same model object, or the final Object result.
+     */
+    private static final ModelAdaptor<ArgsAdaptor> COMPOSITE_ADAPTER =
             (interp, self, model, property, propertyName) -> model.apply(property);
 }
