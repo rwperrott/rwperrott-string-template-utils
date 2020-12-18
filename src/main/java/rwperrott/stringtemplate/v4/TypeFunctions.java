@@ -50,6 +50,11 @@ public final class TypeFunctions {
             return valueType;
         }
 
+        /**
+         * Not really public, only to allow injection by ClassMembers.
+         * @param unique a temporary Set to used to stop overwrite of existing entries in internal map.
+         * @param instanceInvokers the map to scan
+         */
         @Override
         public final void mergeInstanceInvokers(@NonNull final ObjectSet<MemberInvoker> unique,
                                                 @NonNull final Map<String, MemberInvokersImpl> instanceInvokers) {
@@ -59,7 +64,7 @@ public final class TypeFunctions {
                 final int toSize = to.size();
                 if (0 == toSize) {
                     to.ensureCapacity(instanceInvokers.size());
-                    to.addAll(v);
+                    v.forEach(to);
                 } else {
                     v.stream()
                      .filter(mi -> !unique.contains(mi))
@@ -68,13 +73,18 @@ public final class TypeFunctions {
                     if (newSize != toSize) {
                         to.clear();
                         to.ensureCapacity(newSize);
-                        to.addAll(unique);
+                        unique.forEach(to);
                     }
                     unique.clear();
                 }
             });
         }
 
+        /**
+         * Not really public, only to allow injection by ClassMembers.
+         * @param unique a temporary Set to used to stop overwrite of existing entries in internal map.
+         * @param staticInvokers the map to scan
+         */
         @Override
         public void mergeStaticInvokers(final ObjectSet<MemberInvoker> unique,
                                         final Map<String, MemberInvokersImpl> staticInvokers) {
@@ -84,18 +94,17 @@ public final class TypeFunctions {
                 final int toSize = to.size();
                 if (0 == toSize) {
                     to.ensureCapacity(staticInvokers.size());
-                    v.functionStream(valueType)
-                     .forEach(to::add);
+                    v.functionStream(valueType).forEach(to);
                 } else {
-                    unique.addAll(to);
+                    to.forEach(unique::add);
                     v.functionStream(valueType)
                      .filter(mi -> !unique.contains(mi))
-                     .forEach(to::add);
+                     .forEach(to);
                     final int newSize = unique.size();
                     if (newSize != toSize) {
                         to.clear();
                         to.ensureCapacity(newSize);
-                        to.addAll(unique);
+                        unique.forEach(to);
                     }
                     unique.clear();
                 }
@@ -117,8 +126,7 @@ public final class TypeFunctions {
      * @param functionClasses the classes containing the static function methods
      */
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-    public static void registerFunctionClasses(Class<?> valueType, Class<?>... functionClasses) {
-        Objects.requireNonNull(valueType, "valueType");
+    public static void registerFunctionClasses(final @NonNull Class<?> valueType, Class<?>... functionClasses) {
         final ByName byName = get(valueType);
         if (null != functionClasses)
             synchronized (byName) {
