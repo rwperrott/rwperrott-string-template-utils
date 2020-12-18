@@ -81,14 +81,11 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
         private final Object value;
         private final String propertyName;
         private final MemberInvokers memberInvokers;
-        // Lock for args and latestMatchingInvoker, especially against debugger!
-        private final StampedLock debugLock = new StampedLock();
         private final List<Object> args = new ArrayList<>();
         /**
          * Saved, so can be invoke last
          */
         private MemberInvoker latestMatchingInvoker;
-        private String string;
 
         private ArgsAdaptor(final Interpreter interp,
                             final ST self,
@@ -113,52 +110,41 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
 
         @Override
         public Object apply(final @NonNull Object o) {
-            // Protect args and latestMatchingInvoker.
-            long stamp = debugLock.writeLock();
-            try {
-                args.add(o);
-                final MemberInvoker mi = memberInvokers.find(onlyPublic, returnType, args);
-                if (null != mi)
-                    latestMatchingInvoker = mi;
-                return args.size() < memberInvokers.maxTypeConverterCount()
-                       ? this
-                       : invoke(); // No matches after this, so use latestMatchingInvoker
-            } finally {
-                debugLock.unlockWrite(stamp);
-            }
+            args.add(o);
+            final MemberInvoker mi = memberInvokers.find(onlyPublic, returnType, args);
+            if (null != mi)
+                latestMatchingInvoker = mi;
+            return args.size() < memberInvokers.maxTypeConverterCount()
+                   ? this
+                   : invoke(); // No matches after this, so use latestMatchingInvoker
         }
 
         // Called by apply or toString.
         @SuppressWarnings({"rawtypes", "unchecked"})
         private Object invoke() {
-            final long stamp = debugLock.readLock();
+            int i = 0, n = args.size();
+            if (null == latestMatchingInvoker)
+                throw STExceptions.noSuchPropertyInObject(value,join(propertyName, args, i, n),
+                                                          new IllegalArgumentException("No matching member found"));
+            //
+            Object result = null;
             try {
-                int i = 0, n = args.size();
-                if (null == latestMatchingInvoker)
-                    throw STExceptions.noSuchPropertyInObject(value,join(propertyName, args, i, n),
-                                                              new IllegalArgumentException("No matching member found"));
-                //
-                Object result = null;
-                try {
-                    // Some of the properties found a longest match method, so can resolve model and some properties to an object result.
-                    result = latestMatchingInvoker.invoke(value, args);
+                // Some of the properties found a longest match method, so can resolve model and some properties to an object result.
+                result = latestMatchingInvoker.invoke(value, args);
 
-                    // For each excess property:
-                    //    call getModelAdapter and getProperty, to part/fully resolving property.
-                    // Part resolved properties can be ArgsAdaptor instances.
-                    final STGroup stg = self.groupThatCreatedThisInstance;
-                    i = latestMatchingInvoker.typeConverterCount();
-                    while (i < n) {
-                        final Object arg = args.get(i++);
-                        final ModelAdaptor ma = stg.getModelAdaptor(arg.getClass()); // Assume never can be null
-                        result = ma.getProperty(interp, self, result, arg, arg.toString());
-                    }
-                    return result;
-                } catch (Throwable t) { // Catch failure of latestMatchingInvoker.invoke or later failure.
-                    throw STExceptions.noSuchPropertyInObject(value, join(result, args, i, n), t);
+                // For each excess property:
+                //    call getModelAdapter and getProperty, to part/fully resolving property.
+                // Part resolved properties can be ArgsAdaptor instances.
+                final STGroup stg = self.groupThatCreatedThisInstance;
+                i = latestMatchingInvoker.typeConverterCount();
+                while (i < n) {
+                    final Object arg = args.get(i++);
+                    final ModelAdaptor ma = stg.getModelAdaptor(arg.getClass()); // Assume never can be null
+                    result = ma.getProperty(interp, self, result, arg, arg.toString());
                 }
-            } finally {
-                debugLock.unlockRead(stamp);
+                return result;
+            } catch (Throwable t) { // Catch failure of latestMatchingInvoker.invoke or later failure.
+                throw STExceptions.noSuchPropertyInObject(value, join(result, args, i, n), t);
             }
         }
 
@@ -185,14 +171,7 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
          * Must call invoke, in case no more properties after last one.
          */
         public String toString() {
-            long stamp = debugLock.tryReadLock();
-            if (0 == stamp)
-                return "locked:" + string; // Only for debug to see a stale value, to prevent prematurely invoke call.
-            try {
-                return string = invoke().toString();
-            } finally {
-                debugLock.unlockRead(stamp);
-            }
+            return invoke().toString();
         }
     }
 
