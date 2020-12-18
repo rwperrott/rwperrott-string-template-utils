@@ -13,7 +13,6 @@ import static java.util.Objects.requireNonNull;
  * No StringJoiner is not better, it is quite limited!
  */
 public final class ToStringBuilder extends MultiLineJoiner {
-
     public ToStringBuilder(final String className,
                            final boolean multiline) {
         this(new StringBuilder(), className, multiline);
@@ -154,5 +153,4 @@ public final class ToStringBuilder extends MultiLineJoiner {
             return appender.appendTo(mlj, o);
         }
     }
-
 }

@@ -4,6 +4,9 @@ import org.testng.Assert;
 
 import java.util.Map;
 
+/**
+ * Used by AbstractInvokeAdaptorTest
+ */
 @SuppressWarnings("unused")
 class Test extends ValueTemplateRenderer<Test> {
 
