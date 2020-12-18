@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectRBTreeMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
+import lombok.NonNull;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -13,7 +14,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import static rwperrott.stringtemplate.v4.TypeConverter.box;
 
@@ -49,8 +49,7 @@ public final class ClassMembers {
             cache.put(cls, new ClassMembers(cls));
     }
 
-    public static ClassMembers of(final Class<?> cls) {
-        Objects.requireNonNull(cls, "cls");
+    public static ClassMembers of(final @NonNull Class<?> cls) {
         synchronized (cache) {
             return cache.computeIfAbsent(cls, ClassMembers::new);
         }
@@ -139,6 +138,7 @@ public final class ClassMembers {
         this.staticInvokers = new Object2ObjectLinkedOpenHashMap<>(staticInvokers_);
     }
 
+    // Used by TypeConverter and TypeIndexMap
     static boolean isAssignableFrom(Class<?> type, Class<?> from) {
         type = box(type); //
         from = box(from);
