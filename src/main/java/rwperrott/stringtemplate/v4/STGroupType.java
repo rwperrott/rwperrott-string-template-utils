@@ -1,5 +1,6 @@
 package rwperrott.stringtemplate.v4;
 
+import lombok.NonNull;
 import org.stringtemplate.v4.STGroup;
 import org.stringtemplate.v4.STGroupDir;
 import org.stringtemplate.v4.STGroupFile;
@@ -13,7 +14,6 @@ import java.io.StringReader;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.stringtemplate.v4.STGroup.GROUP_FILE_EXTENSION;
 import static org.stringtemplate.v4.STGroup.TEMPLATE_FILE_EXTENSION;
@@ -27,16 +27,16 @@ public enum STGroupType implements MultilineAppender {
      */
     string(STGroupString.class) {
         private STGroupString as(final Object o) {
-            return (STGroupString) Objects.requireNonNull(o, "o");
+            return (STGroupString)o;
         }
 
         @Override
-        public STGroup getSTGroup(String sourceName, String source, URL url, String encoding) {
-            return new STGroupString(Objects.requireNonNull(sourceName, "sourceName"), Objects.requireNonNull(source, "source"));
+        public STGroup getSTGroup(final @NonNull String sourceName, final @NonNull String source, URL url, String encoding) {
+            return new STGroupString(sourceName, source);
         }
 
         @Override
-        public boolean appendTo(final MultiLineJoiner mlj, final Object o) {
+        public boolean appendTo(final @NonNull MultiLineJoiner mlj, final Object o) {
             final STGroupString stg = as(o);
             final ToStringBuilder ts = new ToStringBuilder(mlj, "STGroupString");
             ts.add("sourceName", stg.sourceName);
@@ -46,23 +46,23 @@ public enum STGroupType implements MultilineAppender {
         }
 
         @Override
-        public String getSourceName(final STGroup stGroup) {
+        public String getSourceName(final @NonNull STGroup stGroup) {
             return as(stGroup).sourceName;
         }
 
         @Override
-        public Object getSource(final STGroup stGroup) {
+        public Object getSource(final @NonNull STGroup stGroup) {
             return as(stGroup).text;
         }
 
         @Override
-        public Object getTemplateSource(final STGroup stGroup, final String templateName) {
+        public Object getTemplateSource(final @NonNull STGroup stGroup, final @NonNull String templateName) {
             return as(stGroup).sourceName;
         }
 
         @SuppressWarnings("RedundantThrows")
         @Override
-        Reader openReader(final STGroup stGroup, final Object source, final String encoding) throws IOException {
+        Reader openReader(final @NonNull STGroup stGroup, final @NonNull Object source, final @NonNull String encoding) throws IOException {
             return new StringReader(as(stGroup).text);
         }
     },
@@ -71,19 +71,19 @@ public enum STGroupType implements MultilineAppender {
      * delimiterStartChar,delimiterStopChar) will be used.
      */
     file(STGroupFile.class) {
-        private STGroupFile as(final Object o) {
-            return (STGroupFile) Objects.requireNonNull(o, "o");
+        private STGroupFile as(final @NonNull Object o) {
+            return (STGroupFile) o;
         }
 
         @Override
-        public STGroup getSTGroup(String sourceName, String source, URL url, String encoding) {
+        public STGroup getSTGroup(@NonNull String sourceName, @NonNull String source, URL url, @NonNull String encoding) {
             return new STGroupFile(url, encoding,
                                    STGroup.defaultGroup.delimiterStartChar,
                                    STGroup.defaultGroup.delimiterStopChar);
         }
 
         @Override
-        public boolean appendTo(final MultiLineJoiner mlj, final Object o) {
+        public boolean appendTo(final @NonNull MultiLineJoiner mlj, final @NonNull Object o) {
             final STGroupFile stg = as(o);
             final ToStringBuilder ts = new ToStringBuilder(mlj, "STGroupFile");
             //ts.add("fileName", stg.fileName);
@@ -94,23 +94,23 @@ public enum STGroupType implements MultilineAppender {
         }
 
         @Override
-        public String getSourceName(final STGroup stGroup) {
+        public String getSourceName(final @NonNull STGroup stGroup) {
             return as(stGroup).url.toString();
         }
 
         @Override
-        public Object getSource(final STGroup stGroup) {
+        public Object getSource(final @NonNull STGroup stGroup) {
             return as(stGroup).url;
         }
 
         @SuppressWarnings("RedundantThrows")
         @Override
-        public Object getTemplateSource(final STGroup stGroup, final String templateName) throws IOException {
+        public Object getTemplateSource(final @NonNull STGroup stGroup, final @NonNull String templateName) throws IOException {
             return as(stGroup).url;
         }
 
         @Override
-        Reader openReader(final STGroup stGroup, final Object source, final String encoding) throws IOException {
+        Reader openReader(final @NonNull STGroup stGroup, final @NonNull Object source, final String encoding) throws IOException {
             return new InputStreamReader(((URL) source).openStream(), encoding);
         }
     },
@@ -118,19 +118,19 @@ public enum STGroupType implements MultilineAppender {
      * If not string or file, new STGroupDir(url,encoding, delimiterStartChar,delimiterStopChar) will be used.
      */
     directory(STGroupDir.class) {
-        private STGroupDir as(final Object o) {
-            return (STGroupDir) Objects.requireNonNull(o, "o");
+        private STGroupDir as(Object o) {
+            return (STGroupDir)o;
         }
 
         @Override
-        public STGroup getSTGroup(String sourceName, String source, URL url, String encoding) {
+        public STGroup getSTGroup(@NonNull String sourceName, @NonNull String source, URL url, @NonNull String encoding) {
             return new STGroupDir(url, encoding,
                                   STGroup.defaultGroup.delimiterStartChar,
                                   STGroup.defaultGroup.delimiterStopChar);
         }
 
         @Override
-        public boolean appendTo(final MultiLineJoiner mlj, final Object o) {
+        public boolean appendTo(final @NonNull MultiLineJoiner mlj, final @NonNull Object o) {
             final STGroupDir stg = as(o);
             final ToStringBuilder ts = new ToStringBuilder(mlj, "STGroupDir");
             //ts.add("groupDirName", stg.groupDirName);
@@ -141,17 +141,17 @@ public enum STGroupType implements MultilineAppender {
         }
 
         @Override
-        public String getSourceName(final STGroup stGroup) {
+        public String getSourceName(final @NonNull STGroup stGroup) {
             return as(stGroup).root.toString();
         }
 
         @Override
-        public Object getSource(final STGroup stGroup) {
+        public Object getSource(final @NonNull STGroup stGroup) {
             return as(stGroup).root;
         }
 
         @Override
-        public Object getTemplateSource(final STGroup stGroup, final String templateName) throws IOException {
+        public Object getTemplateSource(final @NonNull STGroup stGroup, final @NonNull String templateName) throws IOException {
             final URL root = as(stGroup).root;
             URL url = new URL(root + Misc.getParent(templateName) + GROUP_FILE_EXTENSION);
             try {
@@ -165,7 +165,7 @@ public enum STGroupType implements MultilineAppender {
         }
 
         @Override
-        Reader openReader(final STGroup stGroup, final Object source, final String encoding) throws IOException {
+        Reader openReader(final @NonNull STGroup stGroup, final @NonNull Object source, final @NonNull String encoding) throws IOException {
             return new InputStreamReader(((URL) source).openStream(), encoding);
         }
     };
@@ -176,15 +176,19 @@ public enum STGroupType implements MultilineAppender {
         this.stGroupClass = stGroupClass;
     }
 
-    public abstract STGroup getSTGroup(String sourceName, String source, URL url, String encoding);
+    // User by plugin
+    @SuppressWarnings("unused")
+    public abstract STGroup getSTGroup(@NonNull String sourceName, @NonNull String source, URL url, @NonNull String encoding);
 
-    public abstract String getSourceName(STGroup stGroup);
+    // User by plugin
+    @SuppressWarnings("unused")
+    public abstract String getSourceName(@NonNull STGroup stGroup);
 
-    public abstract Object getSource(STGroup stGroup);
+    public abstract Object getSource(@NonNull STGroup stGroup);
 
-    public abstract Object getTemplateSource(final STGroup stGroup, final String templateName) throws IOException;
+    public abstract Object getTemplateSource(final @NonNull STGroup stGroup, final @NonNull String templateName) throws IOException;
 
-    abstract Reader openReader(final STGroup stGroup, final Object source, final String encoding) throws IOException;
+    abstract Reader openReader(final @NonNull STGroup stGroup, final @NonNull Object source, final @NonNull String encoding) throws IOException;
 
     private static final Map<Class<?>, STGroupType> MAP;
 
@@ -196,8 +200,7 @@ public enum STGroupType implements MultilineAppender {
         MAP = map;
     }
 
-    public static STGroupType of(final STGroup stGroup) {
-        Objects.requireNonNull(stGroup, "stGroup");
+    public static STGroupType of(final @NonNull STGroup stGroup) {
         return MAP.computeIfAbsent(stGroup.getClass(),
                                    k -> {
                                        throw new IllegalArgumentException(k.toString());
