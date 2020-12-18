@@ -71,7 +71,7 @@ public final class ClassMembers {
             }
             (Modifier.isStatic(f.getModifiers()) ? staticInvokers_ : instanceInvokers_)
                     .computeIfAbsent(f.getName(), MemberInvokersImpl::new)
-                    .add(MemberInvoker.forField(box(f.getType()), f, mh));
+                    .accept(MemberInvoker.forField(box(f.getType()), f, mh));
         }
         //
         for (final Method m : cls.getDeclaredMethods()) {
@@ -93,7 +93,7 @@ public final class ClassMembers {
                         final MethodHandle mh = lookup.unreflect(m);
                         staticInvokers_
                                 .computeIfAbsent(m.getName(), MemberInvokersImpl::new)
-                                .add(MemberInvoker.forStaticMethod(returnType, m, mh, typeConverters, valueIndexOf));
+                                .accept(MemberInvoker.forStaticMethod(returnType, m, mh, typeConverters, valueIndexOf));
                     }
                 } else {
                     final TypeConverter[] typeConverters =
@@ -105,7 +105,7 @@ public final class ClassMembers {
                         final MethodHandle mh = lookup.unreflect(m);
                         instanceInvokers_
                                 .computeIfAbsent(m.getName(), MemberInvokersImpl::new)
-                                .add(MemberInvoker.forMethod(returnType, m, mh, typeConverters));
+                                .accept(MemberInvoker.forMethod(returnType, m, mh, typeConverters));
                     }
                 }
             } catch (IllegalAccessException ignore) {
@@ -124,7 +124,7 @@ public final class ClassMembers {
                     final MethodHandle mh = lookup.unreflectConstructor(c);
                     staticInvokers_
                             .computeIfAbsent(simpleName, MemberInvokersImpl::new)
-                            .add(MemberInvoker.forConstructor(cls, c, mh, typeConverters, valueIndexOf));
+                            .accept(MemberInvoker.forConstructor(cls, c, mh, typeConverters, valueIndexOf));
                 }
             } catch (IllegalAccessException ignore) {
             }
