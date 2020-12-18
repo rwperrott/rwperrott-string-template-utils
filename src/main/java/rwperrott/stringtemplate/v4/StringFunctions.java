@@ -1,5 +1,6 @@
 package rwperrott.stringtemplate.v4;
 
+import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.text.WordUtils;
@@ -54,7 +55,7 @@ public final class StringFunctions {
      *
      * @return "" if len less than or equal to zero; v if len more than or equal to zero.
      */
-    public static String leftstr(String value, int len) {
+    public static String leftstr(@NonNull String value, int len) {
         final int n = value.length();
         if (len < 0) {
             len += n;
@@ -71,7 +72,7 @@ public final class StringFunctions {
      *
      * @return "" if len less than or equal to zero; v if len more than or equal to zero.
      */
-    public static String rightstr(String value, int len) {
+    public static String rightstr(@NonNull String value, int len) {
         final int n = value.length();
         if (len >= n)
             return value;
@@ -87,7 +88,7 @@ public final class StringFunctions {
      *
      * @return result of substr(offset, offset + len);
      */
-    public static String midstr(String value, int offset, int len) {
+    public static String midstr(@NonNull String value, int offset, int len) {
         return substr(value, offset, offset + len);
     }
 
@@ -98,7 +99,7 @@ public final class StringFunctions {
      *
      * @return result, "" if start more than or equal to end
      */
-    public static String substr(String value, int start, int end) {
+    public static String substr(@NonNull String value, int start, int end) {
         if (start < 0)
             start = 0;
         final int n = value.length();
@@ -119,7 +120,7 @@ public final class StringFunctions {
     /**
      * Calls URLEncoder.encode(v, "UTF-8")
      */
-    public static String escapeXML(String value) {
+    public static String escapeXML(@NonNull String value) {
         try {
             return URLEncoder.encode(value, "UTF-8");
         } catch (UnsupportedEncodingException ex) {
@@ -137,28 +138,28 @@ public final class StringFunctions {
     /**
      * Calls String::toLowerCase
      */
-    public static String lower(String value) {
+    public static String lower(@NonNull String value) {
         return value.toLowerCase();
     }
 
     /**
      * Calls String::toLowerCase
      */
-    public static String lower(String value, Locale locale) {
+    public static String lower(@NonNull String value, Locale locale) {
         return value.toLowerCase(locale);
     }
 
     /**
      * Calls String::toUpperCase
      */
-    public static String upper(String value) {
+    public static String upper(@NonNull String value) {
         return value.toUpperCase();
     }
 
     /**
      * Calls String::toUpperCase
      */
-    public static String upper(String value, Locale locale) {
+    public static String upper(@NonNull String value, Locale locale) {
         return value.toUpperCase(locale);
     }
 
