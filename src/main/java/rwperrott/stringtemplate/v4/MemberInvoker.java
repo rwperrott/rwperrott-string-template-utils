@@ -1,5 +1,7 @@
 package rwperrott.stringtemplate.v4;
 
+import lombok.NonNull;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.*;
 import java.util.Arrays;
@@ -29,7 +31,6 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
         return TypeConverter.convert(args, typeConverters(), extrasLen);
     }
 
-
     int typeConverterCount();
 
     Object invoke(final Object value, final List<Object> args) throws Throwable;
@@ -51,13 +52,13 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
         private final Class<?> boxedReturnType;
 
         protected Abstract(final Class<?> boxedReturnType,
-                           final M member,
-                           final MethodHandle methodHandle,
-                           final TypeConverter[] typeConverters) {
+                           final @NonNull M member,
+                           final @NonNull MethodHandle methodHandle,
+                           final @NonNull TypeConverter[] typeConverters) {
             this.h = Arrays.hashCode(typeConverters);
             this.boxedReturnType = boxedReturnType;
-            this.member = requireNonNull(member, "field");
-            this.methodHandle = requireNonNull(methodHandle, "methodHandle");
+            this.member = member;
+            this.methodHandle = methodHandle;
         }
 
         public final boolean isReturnTypeInstanceOf(Class<?> type) {
