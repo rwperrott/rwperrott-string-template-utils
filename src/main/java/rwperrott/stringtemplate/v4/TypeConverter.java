@@ -11,7 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Handles conversion of StringArgs to Object[].
+ * Handles conversion of property id values to the correct parameter type values for the candidate method.
  * <p>
  * Comparable to allow sorting methods by their parameters types mapped to TypeAdapters
  * <p>
@@ -48,6 +48,11 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
     @Override
     public int compareTo(@NonNull final TypeConverter o) {
         return Integer.compare(compareValue, o.compareValue);
+    }
+
+    @Override
+    public String toString() {
+        return "TypeConverter{type="+type+"}";
     }
 
     /**
@@ -251,7 +256,7 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
     }
 
     /**
-     * Allow external code to a new TypeConverter, or replace placeholder entries, while retaining original a order.
+     * Allow external code to add new TypeConverters, or replace placeholder entries, while retaining original order.
      */
     @SuppressWarnings({"unused", "SynchronizationOnLocalVariableOrMethodParameter"})
     public static void register(@NonNull Class<?> type,
@@ -307,7 +312,11 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
     }
 
     /**
-     * Used by ClassMembers constructor
+     * Used by ClassMembers constructor to generate TypeConverter array and populate valueIndexOf map.
+     *
+     * @param parameterTypes an array of parameters to index
+     * @param valueIndexOf a map to accept type indexes
+     * @return the resulting TypeConverter array for all of the parameter types.
      */
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     static TypeConverter[] toTypeConverters(@NonNull Class<?>[] parameterTypes, @NonNull TypeIndexMap valueIndexOf) {
@@ -328,7 +337,10 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
     }
 
     /**
+     * Attempts to convert args to correct types for candidate method.
+     *
      * Used by MemberInvoker::convert
+     * @return true if all conversions successful.
      */
     static boolean convert(@NonNull final List<Object> args,
                            @NonNull final TypeConverter[] typeAdapters,
@@ -363,6 +375,9 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
 
     /**
      * For testing/converting args.
+     *
+     * @param o arg object to be tested/converted
+     * @return the converted object
      */
     @Override
     public Object apply(Object o) {
@@ -371,14 +386,17 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
         // Will handle most matches, with no type conversion
         if (ClassMembers.isAssignableFrom(type, o.getClass()))
             return o;
-        // Must explicitly convert char[] to String
+        // Explicitly convert char[] to String, because toString is useless!
         if (o.getClass() == char[].class)
             o = new String((char[]) o);
         return converter.apply(o);
     }
 
     /**
-     * For only testing extra args.
+     * For testing extra args only.
+     *
+     * @param o extra arg object
+     * @return true if instanceof type
      */
     @Override
     public boolean test(final Object o) {
