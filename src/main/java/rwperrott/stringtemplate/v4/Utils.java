@@ -63,10 +63,10 @@ public class Utils {
         }
     }
 
-    private static final ThreadLocal<Fmt> jsonMappers = withInitial(Fmt::new);
+    private static final ThreadLocal<Fmt> fmts = withInitial(Fmt::new);
 
     public static Fmt fmt() {
-        return jsonMappers.get().clear();
+        return fmts.get().clear();
     }
 
     /**
