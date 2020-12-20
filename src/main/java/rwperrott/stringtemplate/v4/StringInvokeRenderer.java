@@ -1,6 +1,8 @@
 package rwperrott.stringtemplate.v4;
 
+import lombok.NonNull;
 import org.stringtemplate.v4.AttributeRenderer;
+import org.stringtemplate.v4.STGroup;
 import org.stringtemplate.v4.StringRenderer;
 
 import java.util.ArrayList;
@@ -16,6 +18,11 @@ import java.util.Locale;
  * and
  */
 public final class StringInvokeRenderer implements AttributeRenderer<String> {
+
+    public static void register(final @NonNull STGroup stGroup) {
+        stGroup.registerRenderer(String.class, new StringInvokeRenderer());
+    }
+
     @Override
     public final String toString(final String value, final String formatString, final Locale locale) {
         if (null != formatString) {

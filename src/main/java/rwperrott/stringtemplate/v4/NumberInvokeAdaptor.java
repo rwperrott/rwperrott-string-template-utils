@@ -1,5 +1,11 @@
 package rwperrott.stringtemplate.v4;
 
+import lombok.NonNull;
+import org.stringtemplate.v4.STGroup;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 /**
  * Provided because StringTemplate annoyingly doesn't directly support arithmetic and doesn't support numeric
  * conditionals!
@@ -16,6 +22,18 @@ public final class NumberInvokeAdaptor extends AbstractInvokeAdaptor<Number> {
         super(true); // Probably not a good idea to access non-public Members of a Number
     }
 
+    public static void register(final @NonNull STGroup stGroup) {
+        final NumberInvokeAdaptor a = new NumberInvokeAdaptor();
+        stGroup.registerModelAdaptor(Number.class, a);
+        stGroup.registerModelAdaptor(Byte.class, a);
+        stGroup.registerModelAdaptor(Short.class, a);
+        stGroup.registerModelAdaptor(Integer.class, a);
+        stGroup.registerModelAdaptor(Long.class, a);
+        stGroup.registerModelAdaptor(Float.class, a);
+        stGroup.registerModelAdaptor(Double.class, a);
+        stGroup.registerModelAdaptor(BigInteger.class, a);
+        stGroup.registerModelAdaptor(BigDecimal.class, a);
+    }
 
     @Override
     protected String toAlias(final String name) {

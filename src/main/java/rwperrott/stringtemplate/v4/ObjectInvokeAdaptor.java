@@ -1,5 +1,8 @@
 package rwperrott.stringtemplate.v4;
 
+import lombok.NonNull;
+import org.stringtemplate.v4.STGroup;
+
 /**
  * An alternative to ObjectAdapter
  */
@@ -16,6 +19,9 @@ public final class ObjectInvokeAdaptor extends AbstractInvokeAdaptor<Object> {
         super(true);
     }
 
+    public static void register(final @NonNull STGroup stGroup) {
+        stGroup.registerModelAdaptor(Object.class, new ObjectInvokeAdaptor());
+    }
 
     @Override
     protected String toAlias(final String name) {
