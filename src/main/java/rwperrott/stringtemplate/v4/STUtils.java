@@ -2,6 +2,8 @@ package rwperrott.stringtemplate.v4;
 
 import lombok.NonNull;
 import org.stringtemplate.v4.ST;
+import org.stringtemplate.v4.STGroup;
+import org.stringtemplate.v4.StringRenderer;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -130,5 +132,16 @@ public class STUtils {
                 else
                     st.add(k, v);
             });
+    }
+
+    public static void registerAllStringTemplateExtensions(final @NonNull STGroup stGroup) {
+        stGroup.registerRenderer(String.class, new StringRenderer());
+    }
+
+    public static void registerAllUtilsExtensions(final @NonNull STGroup stGroup) {
+        StringInvokeRenderer.register(stGroup);
+        ObjectInvokeAdaptor.register(stGroup);
+        StringInvokeAdaptor.register(stGroup);
+        NumberInvokeAdaptor.register(stGroup);
     }
 }
