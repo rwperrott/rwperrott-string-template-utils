@@ -42,8 +42,32 @@ public class STContext implements Closeable {
                      final @NonNull BiConsumer<String, Throwable> errorLog) {
         this.classLoader = classLoader;
         this.errorLog = errorLog;
-        for (Class<?> cls : PRE_CACHED_CLASSES)
+    }
+
+    /**
+     * Add default packages and classes.
+     * <p>
+     * This is separate, to allow testing with full class-names.
+     */
+    public void addDefaults() {
+        for (String packageName : DEFAULT_PACKAGE_NAMES)
+            addPackage(packageName);
+        for (Class<?> cls : DEFAULT_CACHED_CLASSES)
             addClass0(cls);
+    }
+
+    /**
+     * Allow more package prefixes to be added, for class name to Class lookup.
+     *
+     * @param packageName .
+     */
+    public void addPackage(@NonNull String packageName) {
+        if (packageName.isEmpty())
+            throw new IllegalArgumentException("packageName is blank");
+        // No more validation is necessary, because classLoader won't find a stupid package name.
+        synchronized (PACKAGE_NAMES) {
+            PACKAGE_NAMES.add(packageName);
+        }
     }
 
     private void addClass0(Class<?> cls) {
@@ -60,6 +84,7 @@ public class STContext implements Closeable {
 
     /**
      * Should be called after all addPackage calls.
+     *
      * @param cls a class to register
      */
     public void addClass(Class<?> cls) {
@@ -76,27 +101,15 @@ public class STContext implements Closeable {
         }
     }
 
-    public final void registerRenderers(final STGroup stGroup, Map<String, String> map) {
-        registerAttributePlugins(stGroup,
-                                 map,
-                                 AttributeRenderer.class,
-                                 stGroup::registerRenderer);
-    }
-
-    private <T> void registerAttributePlugins(
-            final @NonNull STGroup stGroup,
-            final @NonNull Map<String, String> map,
-            final @NonNull Class<T> pluginType,
-            final @NonNull BiConsumer<Class<?>, T> registerer) {
-        if (null == map) {
-            return;
-        }
-        boolean failed = false;
-        for (Map.Entry<String, String> e : map.entrySet()) {
-            final Class<?> keyType = getClass("attributeType", e.getKey(), Object.class);
-            final T valueInstance = instanceOf(pluginType.getSimpleName(), e.getValue(), pluginType);
-            registerer.accept(keyType, valueInstance);
-        }
+    private <T> void registerAttributePlugin(
+            final STGroup stGroup,
+            final String attributeType,
+            final String pluginClassName,
+            final Class<T> pluginType,
+            final BiConsumer<Class<?>, T> registerer) {
+        final Class<?> keyType = getClass("attributeType", attributeType, Object.class);
+        final T valueInstance = instanceOf(pluginType.getSimpleName(), pluginClassName, pluginType);
+        registerer.accept(keyType, valueInstance);
     }
 
     // Used by Group to get type for registerRenderer and registerModelAdaptor
@@ -112,9 +125,9 @@ public class STContext implements Closeable {
             // Expand simple names for java.lang package
             final int p = className.lastIndexOf('.');
             if (-1 == p) {
-                Exception fail = null;
+                Exception fail = null; // Store them all, maybe useful for a duf package name
                 for (String packageName : PACKAGE_NAMES) {
-                    final String key = fmt().concat(packageName,".",className);
+                    final String key = fmt().concat(packageName, ".", className);
                     try {
                         cls = classLoader.loadClass(key);
                         if (!type.isAssignableFrom(cls)) {
@@ -130,6 +143,9 @@ public class STContext implements Closeable {
                             fail = ex;
                         else
                             fail.addSuppressed(ex);
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException(format("unexpected failure for label \"%s\" className: \"%s.%s\" ",
+                                                                  label, packageName, className), e);
                     }
                 }
                 throw new IllegalArgumentException(format("%s '%s' not found",
@@ -162,24 +178,24 @@ public class STContext implements Closeable {
         }
     }
 
-    /**
-     * Allow more package prefixes to be added, for class name to Class lookup.
-     *
-     * @param packagePrefix .
-     */
-    public void addPackage(@NonNull String packagePrefix) {
-        if (packagePrefix.isEmpty())
-            throw new IllegalArgumentException("packagePrefix is blank");
-        synchronized (PACKAGE_NAMES) {
-            PACKAGE_NAMES.add(packagePrefix);
-        }
+    public final void registerRenderer(final STGroup stGroup,
+                                       final String attributeType,
+                                       final String rendererClassName) {
+        registerAttributePlugin(stGroup,
+                                attributeType,
+                                rendererClassName,
+                                AttributeRenderer.class,
+                                stGroup::registerRenderer);
     }
 
-    public final void registerModelAdaptors(final STGroup stGroup, Map<String, String> map) {
-        registerAttributePlugins(stGroup,
-                                 map,
-                                 ModelAdaptor.class,
-                                 stGroup::registerModelAdaptor);
+    public final void registerModelAdaptor(final STGroup stGroup,
+                                           final String attributeType,
+                                           final String modelAdapterClassName) {
+        registerAttributePlugin(stGroup,
+                                attributeType,
+                                modelAdapterClassName,
+                                ModelAdaptor.class,
+                                stGroup::registerModelAdaptor);
     }
 
     public STMessage patch(@NonNull STMessage msg, @NonNull String encoding) {
@@ -195,7 +211,8 @@ public class STContext implements Closeable {
                     if (n != -1)
                         return new STRuntimeMessagePatch((STRuntimeMessage) msg, n);
                     scope = scope.parent;
-                } while (scope != null);
+                }
+                while (scope != null);
                 //
                 scope = strm.scope;
                 final ST st = scope.st;
@@ -238,14 +255,14 @@ public class STContext implements Closeable {
         }
     }
 
-    private static final Set<String> PACKAGE_NAMES =
-            new LinkedHashSet<>(Arrays.asList(
-                    "java.lang",
-                    "java.util",
-                    "org.stringtemplate.v4",
-                    "rwperrott.stringtemplate.v4"
-                    ));
-    private static final Class<?>[] PRE_CACHED_CLASSES = {
+    private static final Set<String> PACKAGE_NAMES = new LinkedHashSet<>();
+    private static final String[] DEFAULT_PACKAGE_NAMES = {
+            "java.lang",
+            "java.util",
+            "org.stringtemplate.v4",
+            "rwperrott.stringtemplate.v4"
+    };
+    private static final Class<?>[] DEFAULT_CACHED_CLASSES = {
             // Possible attribute types
             CharSequence.class,
             String.class,
@@ -262,5 +279,4 @@ public class STContext implements Closeable {
             NumberInvokeAdaptor.class,
             StringInvokeAdaptor.class
     };
-
 }
