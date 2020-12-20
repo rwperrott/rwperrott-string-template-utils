@@ -24,73 +24,120 @@ import static rwperrott.stringtemplate.v4.Utils.fmt;
  * <p>
  * Provides methods to register AttributeRenders and ModelAdapters in an STGroup, and to try and replace a STMessage
  * with a relative line numbers for one with an absolute line number.
+ * <p>
+ * Intended to be Thread-Safe, so can called by multiple Threads using their own STGroup(s).
  *
  * @author rwperrott
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class STContext implements Closeable {
-    public final BiConsumer<String, Throwable> errorLog;
+    private final Set<Option> options = EnumSet.noneOf(Option.class);
     private final Map<Object, Object2IntMap<String>> stGroupMetaMap = new HashMap<>();
-    private final ClassLoader classLoader;
+    private final Set<String> packageNames = new LinkedHashSet<>();
     private final Map<String, Class<?>> classCache = new HashMap<>();
+    private final Object lock = new Object();
+    // Allow lazy initialisation to allow for options to be added.
+    private boolean initialised;
+    private ClassLoader classLoader;
 
-    public STContext(final BiConsumer<String, Throwable> errorLog) {
-        this(Thread.currentThread().getContextClassLoader(), errorLog);
-    }
-
-    public STContext(final @NonNull ClassLoader classLoader,
-                     final @NonNull BiConsumer<String, Throwable> errorLog) {
-        this.classLoader = classLoader;
-        this.errorLog = errorLog;
-    }
-
-    /**
-     * Add default packages and classes.
-     * <p>
-     * This is separate, to allow testing with full class-names.
-     */
-    public void addDefaults() {
-        for (String packageName : DEFAULT_PACKAGE_NAMES)
-            addPackage(packageName);
-        for (Class<?> cls : DEFAULT_CACHED_CLASSES)
-            addClass0(cls);
+    public STContext() {
+        this.classLoader = Thread.currentThread().getContextClassLoader();
     }
 
     /**
-     * Allow more package prefixes to be added, for class name to Class lookup.
-     *
-     * @param packageName .
+     * Set a custom ClassLoader.
+     * @param classLoader a custom ClassLoader
+     * @return this
      */
-    public void addPackage(@NonNull String packageName) {
-        if (packageName.isEmpty())
-            throw new IllegalArgumentException("packageName is blank");
-        // No more validation is necessary, because classLoader won't find a stupid package name.
-        synchronized (PACKAGE_NAMES) {
-            PACKAGE_NAMES.add(packageName);
+    public STContext classLoader(final @NonNull ClassLoader classLoader) {
+        synchronized (lock) {
+            ensureUninitialised();
+            this.classLoader = classLoader;
         }
+        return this;
     }
 
-    private void addClass0(Class<?> cls) {
+    private void ensureUninitialised() {
+        if (initialised)
+            throw new IllegalStateException("too late, already initialised");
+    }
+
+    /**
+     * Set some options.
+     * @param options .
+     * @return this
+     */
+    public STContext options(final @NonNull Option... options) {
+        synchronized (lock) {
+            ensureUninitialised();
+            if (0 != options.length)
+                Collections.addAll(this.options, options);
+        }
+        return this;
+    }
+
+    /**
+     * Set all options.
+     * @return this
+     */
+    public STContext allOptions() {
+        synchronized (lock) {
+            ensureUninitialised();
+            options.addAll(Option.ALL);
+        }
+        return this;
+    }
+
+    private void init() {
+        if (options.contains(Option.AddDefaultPackages))
+            Collections.addAll(packageNames, DEFAULT_PACKAGE_NAMES);
+        if (options.contains(Option.AddDefaultClasses))
+            for (Class<?> cls : DEFAULT_CLASSES)
+                cacheClass(cls);
+        initialised = true;
+    }
+
+    /**
+     * Add package names, to allow ShortName class lookup.
+     *
+     * @param packageNames .
+     */
+    public STContext packages(@NonNull String... packageNames) {
+        if (null != packageNames && 0 != packageNames.length)
+            synchronized (lock) {
+                if (!initialised)
+                    init();
+                Collections.addAll(this.packageNames, packageNames);
+            }
+        return this;
+    }
+
+    /**
+     * Some classes to classCache.
+     *
+     * @param classes one of more class to register
+     */
+    public STContext classes(Class<?>... classes) {
+        synchronized (lock) {
+            if (!initialised)
+                init();
+            for(Class<?> cls : classes)
+                cacheClass(cls);
+        }
+        return this;
+    }
+
+    private void cacheClass(Class<?> cls) {
         final String className = cls.getName();
         cacheClass(className, cls, className.lastIndexOf('.'));
     }
 
+    // Add ShortName too is package was added.
     private void cacheClass(String className, Class<?> cls, int p) {
         classCache.put(className, cls);
-        final String packagePrefix = className.substring(p + 1);
-        if (PACKAGE_NAMES.contains(className.substring(p + 1)))
+        final String packageName = className.substring(0, p);
+        if (packageNames.contains(packageName))
             classCache.put(className.substring(p + 1), cls);
-    }
-
-    /**
-     * Should be called after all addPackage calls.
-     *
-     * @param cls a class to register
-     */
-    public void addClass(Class<?> cls) {
-        synchronized (classCache) {
-            addClass0(cls);
-        }
     }
 
     @SuppressWarnings("RedundantThrows")
@@ -101,7 +148,17 @@ public class STContext implements Closeable {
         }
     }
 
-    private <T> void registerAttributePlugin(
+    public final void registerRenderer(final STGroup stGroup,
+                                       final String attributeType,
+                                       final String rendererClassName) {
+        registerAttributeExtension(stGroup,
+                                   attributeType,
+                                   rendererClassName,
+                                   AttributeRenderer.class,
+                                   stGroup::registerRenderer);
+    }
+
+    private <T> void registerAttributeExtension(
             final STGroup stGroup,
             final String attributeType,
             final String pluginClassName,
@@ -116,7 +173,9 @@ public class STContext implements Closeable {
     // Used by instanceOf
     private Class<?> getClass(final String label, final String className, Class<?> type) {
         // Make operation full atomic to avoid pointless puts
-        synchronized (classCache) {
+        synchronized (lock) {
+            if (!initialised)
+                init();
             Class<?> cls = classCache.get(className);
             if (null != cls) {
                 return cls;
@@ -126,7 +185,7 @@ public class STContext implements Closeable {
             final int p = className.lastIndexOf('.');
             if (-1 == p) {
                 Exception fail = null; // Store them all, maybe useful for a duf package name
-                for (String packageName : PACKAGE_NAMES) {
+                for (String packageName : packageNames) {
                     final String key = fmt().concat(packageName, ".", className);
                     try {
                         cls = classLoader.loadClass(key);
@@ -178,24 +237,14 @@ public class STContext implements Closeable {
         }
     }
 
-    public final void registerRenderer(final STGroup stGroup,
-                                       final String attributeType,
-                                       final String rendererClassName) {
-        registerAttributePlugin(stGroup,
-                                attributeType,
-                                rendererClassName,
-                                AttributeRenderer.class,
-                                stGroup::registerRenderer);
-    }
-
     public final void registerModelAdaptor(final STGroup stGroup,
                                            final String attributeType,
                                            final String modelAdapterClassName) {
-        registerAttributePlugin(stGroup,
-                                attributeType,
-                                modelAdapterClassName,
-                                ModelAdaptor.class,
-                                stGroup::registerModelAdaptor);
+        registerAttributeExtension(stGroup,
+                                   attributeType,
+                                   modelAdapterClassName,
+                                   ModelAdaptor.class,
+                                   stGroup::registerModelAdaptor);
     }
 
     public STMessage patch(@NonNull STMessage msg, @NonNull String encoding) {
@@ -255,14 +304,25 @@ public class STContext implements Closeable {
         }
     }
 
-    private static final Set<String> PACKAGE_NAMES = new LinkedHashSet<>();
+    /**
+     * Current options, which may expand, thus the ALL constant.
+     */
+    public enum Option {
+        AddDefaultPackages,
+        AddDefaultClasses;
+        private static final EnumSet<Option> ALL = EnumSet.allOf(Option.class);
+    }
+
     private static final String[] DEFAULT_PACKAGE_NAMES = {
+            // Core Java packages
             "java.lang",
             "java.util",
+            // String Template package
             "org.stringtemplate.v4",
+            // Own package
             "rwperrott.stringtemplate.v4"
     };
-    private static final Class<?>[] DEFAULT_CACHED_CLASSES = {
+    private static final Class<?>[] DEFAULT_CLASSES = {
             // Possible attribute types
             CharSequence.class,
             String.class,
@@ -271,10 +331,10 @@ public class STContext implements Closeable {
             List.class,
             Map.class,
             Set.class,
-            // Renderers
+            // Own Renderers
             StringRenderer.class,
             StringInvokeRenderer.class,
-            // Adapters
+            // Own Adapters
             ObjectInvokeAdaptor.class,
             NumberInvokeAdaptor.class,
             StringInvokeAdaptor.class
