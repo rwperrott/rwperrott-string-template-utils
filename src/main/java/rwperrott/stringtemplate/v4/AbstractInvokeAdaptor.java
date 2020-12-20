@@ -8,7 +8,6 @@ import org.stringtemplate.v4.STGroup;
 import org.stringtemplate.v4.misc.STNoSuchPropertyException;
 
 import java.util.*;
-import java.util.concurrent.locks.StampedLock;
 import java.util.function.UnaryOperator;
 
 /**
@@ -87,6 +86,7 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
          */
         private MemberInvoker latestMatchingInvoker;
 
+        @SuppressWarnings("SameParameterValue")
         private ArgsAdaptor(final Interpreter interp,
                             final ST self,
                             final Object value,

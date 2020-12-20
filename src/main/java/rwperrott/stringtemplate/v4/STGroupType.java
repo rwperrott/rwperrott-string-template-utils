@@ -21,6 +21,7 @@ import static org.stringtemplate.v4.STGroup.TEMPLATE_FILE_EXTENSION;
 /**
  * The type of STGroup to create.
  */
+@SuppressWarnings("unused")
 public enum STGroupType implements MultilineAppender {
     /**
      * If source contains "::=", new STGroupString(null,source,delimiterStartChar,delimiterStopChar) will be used.

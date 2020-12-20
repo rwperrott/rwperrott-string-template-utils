@@ -153,6 +153,7 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
             return parent.isAccessible(onlyPublic);
         }
 
+        @SuppressWarnings("unused")
         @Override
         public final boolean isStatic() {
             return parent.isStatic();

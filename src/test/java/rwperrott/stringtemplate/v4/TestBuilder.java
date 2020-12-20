@@ -2,8 +2,6 @@ package rwperrott.stringtemplate.v4;
 
 import org.testng.Assert;
 
-import java.util.Map;
-
 /**
  * Used by AbstractInvokeAdaptorTest
  */

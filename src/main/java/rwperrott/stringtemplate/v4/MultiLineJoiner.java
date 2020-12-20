@@ -12,6 +12,7 @@ import static rwperrott.stringtemplate.v4.Indent.*;
  *
  * @author infernoz
  */
+@SuppressWarnings("unused")
 public class MultiLineJoiner {
     protected final StringBuilder sb;
     protected final boolean multiline;
