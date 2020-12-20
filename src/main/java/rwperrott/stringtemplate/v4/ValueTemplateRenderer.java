@@ -9,8 +9,8 @@ import org.stringtemplate.v4.misc.STMessage;
 import java.util.*;
 
 import static rwperrott.stringtemplate.v4.STUtils.applyAttributes;
+import static rwperrott.stringtemplate.v4.STUtils.registerAllUtilsExtensions;
 import static rwperrott.stringtemplate.v4.Utils.fmt;
-import static rwperrott.stringtemplate.v4.Utils.toMap;
 
 /**
  * Useful for rendering simple templates with only a "v" attribute Used by Test
@@ -20,7 +20,7 @@ import static rwperrott.stringtemplate.v4.Utils.toMap;
 @SuppressWarnings("unused")
 class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErrorConsumer {
     protected final Map<String, Object> attributes = new HashMap<>();
-    private final STContext ctx;
+    public final STContext ctx;
     private final String sourceName;
     private final List<String> properties = new ArrayList<>();
     private final List<String> wrappers = new ArrayList<>();
@@ -30,7 +30,7 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
     private boolean failed;
 
     public ValueTemplateRenderer(final @NonNull String sourceName) {
-        this.ctx = new STContext(this::log);
+        this.ctx = new STContext().allOptions();
         this.sourceName = sourceName;
     }
 
@@ -104,8 +104,7 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
         try {
             stg = new STGroupString(null == sourceName ? Utils.toString1(template) : sourceName, template);
             stg.setListener(this);
-            ctx.registerRenderers(stg, renderers);
-            ctx.registerModelAdaptors(stg, modelAdapters);
+            registerAllUtilsExtensions(stg);
             st = stg.getInstanceOf("test");
             if (null == st)
                 throw new STException("failed to create st", null);
@@ -141,13 +140,4 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
     // String functions
     public static final String strlen = "strlen(%s)";
     public static final String trim = "trim(%s)";
-    //
-    // Adaptors
-    private static final Map<String, String> renderers = toMap(
-            "String", "StringRenderer");
-    private static final Map<String, String> modelAdapters = toMap(
-            "Object", "ObjectInvokeAdaptor",
-            "String", "StringInvokeAdaptor",
-            "Number", "NumberInvokeAdaptor");
-
 }
