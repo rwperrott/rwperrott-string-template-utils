@@ -41,7 +41,8 @@ public final class SimplePool<T> {
         // Must recycle before offering!
         recycler.accept(t);
         if (!pool.offer(t))
-            consumer.accept(t);
+            if (null != consumer)
+                consumer.accept(t);
     }
 
     @SuppressWarnings("unused")
