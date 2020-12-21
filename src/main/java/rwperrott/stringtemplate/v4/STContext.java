@@ -65,6 +65,19 @@ public class STContext implements Closeable {
     }
 
     /**
+     * Clear all options.
+     *
+     * @return this
+     */
+    public STContext clearOptions() {
+        synchronized (lock) {
+            ensureUninitialised();
+            options.clear();
+        }
+        return this;
+    }
+
+    /**
      * Set some options.
      *
      * @param options .
