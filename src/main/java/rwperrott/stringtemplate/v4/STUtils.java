@@ -7,6 +7,7 @@ import org.stringtemplate.v4.StringRenderer;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
@@ -24,6 +25,7 @@ import static rwperrott.stringtemplate.v4.STGroupType.*;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class STUtils {
+    public static final SimplePool<Fmt> FMT_POOL = new SimplePool<>(4, Fmt::new, Fmt::clear, null);
 
     private STUtils() {
     }
@@ -42,6 +44,90 @@ public class STUtils {
         }
 
     }
+
+    /**
+     * A wrapper for a Formatter object.
+     */
+    @SuppressWarnings("UnusedReturnValue")
+    public static final class Fmt implements Appendable {
+        private final Formatter f = new Formatter();
+
+        private Fmt() {
+        }
+
+        public StringBuilder sb() {
+            return (StringBuilder)f.out();
+        }
+
+        public Fmt clear() {
+            clear(sb());
+            return this;
+        }
+
+        private static void clear(StringBuilder sb) {
+            sb.setLength(0);
+        }
+
+        public String concat(Object... a) {
+            final StringBuilder sb = sb();
+            // Catch probable misuse
+            if (sb.length() > 0)
+                throw new IllegalStateException("Not cleared");
+            append(sb, a);
+            return sb.toString();
+        }
+
+        private static void append(StringBuilder sb, Object[] a) {
+            for (Object o : a)
+                sb.append(o);
+        }
+
+        @Override
+        public Fmt append(final CharSequence csq) {
+            sb().append(csq);
+            return this;
+        }
+
+        @Override
+        public Fmt append(final CharSequence csq, final int start, final int end) {
+            sb().append(csq, start, end);
+            return this;
+        }
+
+        public Fmt append(char ch) {
+            sb().append(ch);
+            return this;
+        }
+
+        public Fmt insert(int i, String s) {
+            sb().insert(i, s);
+            return this;
+        }
+
+        public Fmt append(String s) {
+            sb().append(s);
+            return this;
+        }
+
+        public Fmt format(String format, Object... args) {
+            f.format(format, args);
+            return this;
+        }
+
+        /**
+         * Gets string, then sets buffer length to zero.
+         *
+         * @return .
+         */
+        @Override
+        public String toString() {
+            return sb().toString();
+        }
+    }
+
+    public static final char QUOTE = '\"';
+    public static final char ROUND_START = '(';
+    public static final char ROUND_END = ')';
 
     private static final Pattern TEMPLATE_PATTERN = compile("^([a-z][^( :]*)\\([^ :)]*\\) *::= *.*$", CASE_INSENSITIVE | MULTILINE);
 
@@ -144,4 +230,147 @@ public class STUtils {
         StringInvokeAdaptor.register(stGroup);
         NumberInvokeAdaptor.register(stGroup);
     }
+
+    /**
+     * Convert and array of Object to an array of Strings, using toSting1
+     *
+     * @param a .
+     *
+     * @return .
+     */
+    public static Object[] toStringN(Object... a) {
+        for (int i = 0, n = a.length; i < n; i++)
+            a[i] = toString1(a[i]);
+        return a;
+    }
+
+    /**
+     * Make up for deficiencies in Objects and Arrays classes, and quote CharSequences.
+     *
+     * @param o .
+     *
+     * @return .
+     */
+    public static String toString1(Object o) {
+        final Class<?> eClass = o.getClass();
+        if (o.getClass().isArray()) {
+            if (eClass == byte[].class)
+                return Arrays.toString((byte[]) o);
+            else if (eClass == short[].class)
+                return Arrays.toString((short[]) o);
+            else if (eClass == int[].class)
+                return Arrays.toString((int[]) o);
+            else if (eClass == long[].class)
+                return Arrays.toString((long[]) o);
+            else if (eClass == char[].class)
+                return Arrays.toString((char[]) o);
+            else if (eClass == float[].class)
+                return Arrays.toString((float[]) o);
+            else if (eClass == double[].class)
+                return Arrays.toString((double[]) o);
+            else if (eClass == boolean[].class)
+                return Arrays.toString((boolean[]) o);
+            else
+                return Arrays.toString((Object[]) o);
+        }
+        if (CharSequence.class.isAssignableFrom(eClass))
+            return format("\"%s\"", o.toString());
+        return o.toString();
+    }
+
+    /**
+     * @param array a sequence of key, value pairs
+     *
+     * @return a LinkedHashMap, to preserve sequence
+     */
+    public static Map<String, String> toMap(final @NonNull String... array) {
+        final int n = array.length;
+        if ((n & 1) == 1)
+            throw new IllegalArgumentException("list is an odd size list");
+        return toMap0(Arrays.asList(array), n >> 1);
+    }
+
+    private static Map<String, String> toMap0(final @NonNull List<String> list, final int mapSize) {
+        final Map<String, String> map = new LinkedHashMap<>(mapSize);
+        String name = null;
+        for (String s : list) {
+            if (null == name) {
+                name = s;
+                continue;
+            }
+            map.put(name, s);
+            name = null;
+        }
+        return map;
+    }
+
+    /**
+     * @param list a sequence of key, value pairs
+     *
+     * @return a LinkedHashMap, to preserve sequence
+     */
+    public static Map<String, String> toMap(final @NonNull List<String> list) {
+        final int n = list.size();
+        if ((n & 1) == 1)
+            throw new IllegalArgumentException("list is an odd size list");
+        return toMap0(list, n >> 1);
+    }
+
+    public static void appendTemplateSignature(@NonNull final Appendable a,
+                                               @NonNull final String templateName,
+                                               @NonNull final String... attributeNames) {
+        appendTemplateSignature(a, templateName, Arrays.asList(attributeNames));
+    }
+    public static void appendTemplateSignature(@NonNull final Appendable a,
+                                               @NonNull final String templateName,
+                                               @NonNull final Collection<String> attributeNames) {
+        try {
+            a.append(templateName);
+            a.append('(');
+            int count = 0;
+            for (String attributeName : attributeNames) {
+                if (count++ > 0)
+                    a.append(',');
+                a.append(attributeName);
+            }
+            a.append(") ::= ");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static boolean isPlainProperty(String s) {
+        int i = s.length();
+        if (Character.isJavaIdentifierStart(s.charAt(0))) {
+            while (--i > 0)
+                if (!Character.isJavaIdentifierPart(s.charAt(i)))
+                    return false;
+        } else {
+            while (--i >= 0)
+                if (!Character.isDigit(s.charAt(i)))
+                    return false;
+        }
+                    
+        return true;
+    }
+    
+    public static void appendProperty(@NonNull final Appendable a,
+                                      @NonNull final Object property) {
+        final String s = property.toString();
+        try {
+            if (isPlainProperty(s))
+                a.append('.')
+                 .append(s);
+            else
+                a.append('.')
+                 .append(STUtils.ROUND_START)
+                 .append(STUtils.QUOTE)
+                 .append(s)
+                 .append(STUtils.QUOTE)
+                 .append(STUtils.ROUND_END);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
 }
