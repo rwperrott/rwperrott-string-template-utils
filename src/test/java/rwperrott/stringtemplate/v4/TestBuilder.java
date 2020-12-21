@@ -35,10 +35,6 @@ class Test extends ValueTemplateRenderer<Test> {
         }
     }
 
-    public static Test test() {
-        return new Test(null);
-    }
-
     public static Test test(String sourceName) {
         return new Test(sourceName);
     }

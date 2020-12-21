@@ -17,7 +17,7 @@ import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 
 import static java.lang.String.format;
-import static rwperrott.stringtemplate.v4.Utils.fmt;
+import static rwperrott.stringtemplate.v4.STUtils.FMT_POOL;
 
 /**
  * Contains lazy cache maps for start line numbers of templates in files, and for class name to Class lookup.
@@ -186,7 +186,7 @@ public class STContext implements Closeable {
             if (-1 == p) {
                 Exception fail = null; // Store them all, maybe useful for a duf package name
                 for (String packageName : packageNames) {
-                    final String key = fmt().concat(packageName, ".", className);
+                    final String key = FMT_POOL.use(fmt -> fmt.concat(packageName, ".", className));
                     try {
                         cls = classLoader.loadClass(key);
                         if (!type.isAssignableFrom(cls)) {
