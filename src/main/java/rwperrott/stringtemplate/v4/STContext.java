@@ -46,7 +46,9 @@ public class STContext implements Closeable {
 
     /**
      * Set a custom ClassLoader.
+     *
      * @param classLoader a custom ClassLoader
+     *
      * @return this
      */
     public STContext classLoader(final @NonNull ClassLoader classLoader) {
@@ -64,7 +66,9 @@ public class STContext implements Closeable {
 
     /**
      * Set some options.
+     *
      * @param options .
+     *
      * @return this
      */
     public STContext options(final @NonNull Option... options) {
@@ -78,6 +82,7 @@ public class STContext implements Closeable {
 
     /**
      * Set all options.
+     *
      * @return this
      */
     public STContext allOptions() {
@@ -86,15 +91,6 @@ public class STContext implements Closeable {
             options.addAll(Option.ALL);
         }
         return this;
-    }
-
-    private void init() {
-        if (options.contains(Option.AddDefaultPackages))
-            Collections.addAll(packageNames, DEFAULT_PACKAGE_NAMES);
-        if (options.contains(Option.AddDefaultClasses))
-            for (Class<?> cls : DEFAULT_CLASSES)
-                cacheClass(cls);
-        initialised = true;
     }
 
     /**
@@ -112,19 +108,13 @@ public class STContext implements Closeable {
         return this;
     }
 
-    /**
-     * Some classes to classCache.
-     *
-     * @param classes one of more class to register
-     */
-    public STContext classes(Class<?>... classes) {
-        synchronized (lock) {
-            if (!initialised)
-                init();
-            for(Class<?> cls : classes)
+    private void init() {
+        if (options.contains(Option.AddDefaultPackages))
+            Collections.addAll(packageNames, DEFAULT_PACKAGE_NAMES);
+        if (options.contains(Option.AddDefaultClasses))
+            for (Class<?> cls : DEFAULT_CLASSES)
                 cacheClass(cls);
-        }
-        return this;
+        initialised = true;
     }
 
     private void cacheClass(Class<?> cls) {
@@ -140,6 +130,21 @@ public class STContext implements Closeable {
             classCache.put(className.substring(p + 1), cls);
     }
 
+    /**
+     * Some classes to classCache.
+     *
+     * @param classes one of more class to register
+     */
+    public STContext classes(Class<?>... classes) {
+        synchronized (lock) {
+            if (!initialised)
+                init();
+            for (Class<?> cls : classes)
+                cacheClass(cls);
+        }
+        return this;
+    }
+
     @SuppressWarnings("RedundantThrows")
     @Override
     public void close() throws IOException {
@@ -148,11 +153,17 @@ public class STContext implements Closeable {
         }
     }
 
-    public final void registerRenderer(final STGroup stGroup,
-                                       final String attributeType,
-                                       final String rendererClassName) {
+    /**
+     *
+     * @param stGroup target
+     * @param attributeTypeName .
+     * @param rendererClassName .
+     */
+    public final void registerRenderer(@NonNull final STGroup stGroup,
+                                       @NonNull final String attributeTypeName,
+                                       @NonNull final String rendererClassName) {
         registerAttributeExtension(stGroup,
-                                   attributeType,
+                                   attributeTypeName,
                                    rendererClassName,
                                    AttributeRenderer.class,
                                    stGroup::registerRenderer);
@@ -160,13 +171,46 @@ public class STContext implements Closeable {
 
     private <T> void registerAttributeExtension(
             final STGroup stGroup,
-            final String attributeType,
-            final String pluginClassName,
-            final Class<T> pluginType,
+            final String attributeTypeName,
+            final String extensionClassName,
+            final Class<T> extensionType,
             final BiConsumer<Class<?>, T> registerer) {
-        final Class<?> keyType = getClass("attributeType", attributeType, Object.class);
-        final T valueInstance = instanceOf(pluginType.getSimpleName(), pluginClassName, pluginType);
+        final Class<?> keyType = getClass("attributeType", attributeTypeName, Object.class);
+        final T valueInstance = instanceOf(extensionType.getSimpleName(), extensionClassName, extensionType);
         registerer.accept(keyType, valueInstance);
+    }
+
+    /**
+     * @param stGroup the target
+     * @param map a map of AttributeRenderer class name keyed by attribute type name
+     */
+    public final void registerRenderers(@NonNull final STGroup stGroup,
+                                        @NonNull final Map<String, String> map) {
+        registerAttributeExtensions(stGroup,
+                                    map,
+                                    AttributeRenderer.class,
+                                    stGroup::registerRenderer);
+    }
+
+    /**
+     * @param stGroup the target
+     * @param map a map of ModelAdaptor class name keyed by attribute type name
+     */
+    public final void registerModelAdaptors(@NonNull final STGroup stGroup,
+                                            @NonNull final Map<String, String> map) {
+        registerAttributeExtensions(stGroup,
+                                    map,
+                                    ModelAdaptor.class,
+                                    stGroup::registerModelAdaptor);
+    }
+
+    private <T> void registerAttributeExtensions(
+            final STGroup stGroup,
+            final Map<String, String> typeExtensionMap,
+            final Class<T> extensionTypeName,
+            final BiConsumer<Class<?>, T> registerer) {
+        typeExtensionMap.forEach((attributeType, extensionClassName) ->
+                                         registerAttributeExtension(stGroup, attributeType, extensionClassName, extensionTypeName, registerer));
     }
 
     // Used by Group to get type for registerRenderer and registerModelAdaptor
@@ -237,9 +281,9 @@ public class STContext implements Closeable {
         }
     }
 
-    public final void registerModelAdaptor(final STGroup stGroup,
-                                           final String attributeType,
-                                           final String modelAdapterClassName) {
+    public final void registerModelAdaptor(@NonNull final STGroup stGroup,
+                                           @NonNull final String attributeType,
+                                           @NonNull final String modelAdapterClassName) {
         registerAttributeExtension(stGroup,
                                    attributeType,
                                    modelAdapterClassName,
