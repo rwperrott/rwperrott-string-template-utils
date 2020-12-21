@@ -9,8 +9,7 @@ import org.stringtemplate.v4.misc.STMessage;
 import java.util.ArrayList;
 import java.util.List;
 
-import static rwperrott.stringtemplate.v4.STUtils.registerAllUtilsExtensions;
-import static rwperrott.stringtemplate.v4.Utils.fmt;
+import static rwperrott.stringtemplate.v4.STUtils.*;
 
 /**
  * Useful for rendering simple templates with only a "v" attribute Used by Test
@@ -21,7 +20,7 @@ import static rwperrott.stringtemplate.v4.Utils.fmt;
 class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErrorConsumer {
     public final STContext ctx;
     private final String sourceName;
-    private final List<String> properties = new ArrayList<>();
+    private final List<String> propertyNames = new ArrayList<>();
     private final List<String> wrappers = new ArrayList<>();
     protected STGroupString stg;
     protected String template;
@@ -35,7 +34,7 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
     }
 
     public final void clear() {
-        properties.clear();
+        propertyNames.clear();
         wrappers.clear();
         template = null;
         value = null;
@@ -65,13 +64,13 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
     /**
      * Add a property name, which will later be added in <code>("property-name")</code> escaped format.
      *
-     * @param property property, which can contain some reserved characters.
+     * @param propertyName may contain some reserved characters.
      *
      * @return this
      */
-    public R p(final @NonNull String property) {
-        // wrap properties in () and quotes to allow use of reserved chars.
-        properties.add(property);
+    public R p(final @NonNull String propertyName) {
+        // wrap propertyNames in () and quotes to allow use of reserved chars.
+        propertyNames.add(propertyName);
         return r();
     }
 
@@ -91,31 +90,45 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
         if (null == value)
             throw new IllegalStateException("missing \"+VALUE_NAME+\" attribute");
 
-        final Utils.Fmt fmt = fmt();
-        final String templateStart = fmt()
-                .format("%s(%s) ::= <%<", TEMPLATE_NAME, VALUE_NAME)
-                .toString();
-        // Add properties.
-        fmt.append(VALUE_NAME);
-        for (String property : properties) {
-            fmt.append('.');
-            fmt().concat("(\"", property, "\")");
-        }
-        // Wrappers template result.
-        for (String s : wrappers)
-            fmt.format(s, fmt.toString());
-        // Add start and end of template.
-        template = fmt
-                .insert(0, templateStart)
-                .append(">%>")
-                .toString();
+        final String templateText =
+                FMT_POOL.use(t -> {
+                    appendTemplateSignature(t, TEMPLATE_NAME, VALUE_NAME);
+                    t.append("<%<");
+                    // Not final, to allow reference swapping
+                    Fmt b = FMT_POOL.remove(), other = null;
+                    try {
+                        b.append(VALUE_NAME);
+                        //
+                        for (String propertyName : propertyNames)
+                            appendProperty(b, propertyName);
+                        //
+                        if (!wrappers.isEmpty()) {
+                            other = FMT_POOL.remove();
+                            for (String wrapper : wrappers) {
+                                other.format(wrapper, b);
+                                // Swap instances, to avoid having to create a String object
+                                final Fmt priorB = b;
+                                b = other;
+                                other = priorB;
+                            }
+                        }
+                        // Add start and end of template.
+                        return t
+                                .sb()
+                                .append(b)
+                                .append(">%>")
+                                .toString();
+                    } finally {
+                        FMT_POOL.offer(b, other);
+                    }
+                });
 
         Object r = null;
         Exception ex = null;
         try {
             stg = new STGroupString(null == sourceName
-                                    ? Utils.toString1(template)
-                                    : sourceName, template);
+                                    ? STUtils.toString1(templateText)
+                                    : sourceName, templateText);
             stg.setListener(this);
             registerAllUtilsExtensions(stg);
             st = stg.getInstanceOf(TEMPLATE_NAME);
@@ -127,11 +140,8 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
             ex = e;
             failed = true;
         }
-        if (failed) {
-            throw new STException(fmt.format("failed to render template: ", template)
-                                     .toString(),
-                                  ex);
-        }
+        if (failed)
+            throw new STException(FMT_POOL.use(fmt -> fmt.concat("failed to render template: ", templateText)), ex);
         return r;
     }
 
@@ -143,7 +153,8 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
 
     protected void log(final String msg, Throwable t) {
         System.err.println(msg);
-        t.printStackTrace();
+        if (null != t)
+            t.printStackTrace();
     }
 
     // List functions
