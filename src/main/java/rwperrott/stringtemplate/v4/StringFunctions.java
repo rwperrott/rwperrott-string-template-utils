@@ -17,6 +17,8 @@ import java.util.Locale;
  * <p>
  * I don't care about the StringTemplate developer's purity arguments, we need pragmatism like this, to make
  * StringTemplate a lot more usable.
+ *
+ * @author rwperrott
  */
 @SuppressWarnings("unused")
 public final class StringFunctions {
@@ -54,8 +56,6 @@ public final class StringFunctions {
      * @param len   if less than zero, v length added
      *
      * @return "" if len less than or equal to zero; v if len more than or equal to zero.
-     *
-     * @author rwperrott
      */
     public static String leftstr(@NonNull String value, int len) {
         final int n = value.length();

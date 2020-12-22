@@ -12,7 +12,7 @@ import java.util.List;
 import static rwperrott.stringtemplate.v4.STUtils.*;
 
 /**
- * Useful for rendering simple templates with only a "v" attribute Used by Test
+ * Useful for rendering simple templates with only a "v" attribute for testing.
  *
  * @param <R>
  *
