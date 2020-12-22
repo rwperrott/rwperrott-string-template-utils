@@ -54,6 +54,8 @@ public final class StringFunctions {
      * @param len   if less than zero, v length added
      *
      * @return "" if len less than or equal to zero; v if len more than or equal to zero.
+     *
+     * @author rwperrott
      */
     public static String leftstr(@NonNull String value, int len) {
         final int n = value.length();

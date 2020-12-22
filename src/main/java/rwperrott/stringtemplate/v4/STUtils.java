@@ -23,6 +23,9 @@ import static java.util.regex.Pattern.*;
 import static org.stringtemplate.v4.STGroup.GROUP_FILE_EXTENSION;
 import static rwperrott.stringtemplate.v4.STGroupType.*;
 
+/**
+ * @author rwperrott
+ */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class STUtils {
     private STUtils() {

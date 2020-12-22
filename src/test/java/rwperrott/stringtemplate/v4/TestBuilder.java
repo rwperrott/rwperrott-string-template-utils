@@ -3,8 +3,9 @@ package rwperrott.stringtemplate.v4;
 import org.testng.Assert;
 
 /**
- * Used by AbstractInvokeAdaptorTest
+ * @author rwperrott
  */
+// Used by AbstractInvokeAdaptorTest
 @SuppressWarnings("unused")
 class Test extends ValueTemplateRenderer<Test> {
 

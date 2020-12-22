@@ -16,6 +16,8 @@ import java.util.Locale;
  * <p>
  * The current function classes tried are: rwperrott.st4.StringFunctions org.apache.commons.lang3.StringUtils methods
  * and
+ *
+ * @author rwperrott
  */
 public final class StringInvokeRenderer implements AttributeRenderer<String> {
 

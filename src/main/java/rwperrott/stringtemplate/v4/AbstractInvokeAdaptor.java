@@ -18,6 +18,8 @@ import java.util.function.UnaryOperator;
  * redundant Security costs of calling invoke on Field or Method Member objects.
  *
  * @param <T> type to be adapted
+ *
+ * @author rwperrott
  */
 public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
     private final boolean onlyPublic;

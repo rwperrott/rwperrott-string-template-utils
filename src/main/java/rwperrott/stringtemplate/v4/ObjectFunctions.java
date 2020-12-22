@@ -9,6 +9,8 @@ import static java.util.Comparator.naturalOrder;
  * Mainly exists to fix stupid lack of support for arrays by ST4!
  * <p>
  * Set could be useful to pass a set of options or flags, rather than bloating the templates list!
+ *
+ * @author rwperrott
  */
 @SuppressWarnings("unused")
 public class ObjectFunctions {

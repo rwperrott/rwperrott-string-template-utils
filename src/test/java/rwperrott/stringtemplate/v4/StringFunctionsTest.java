@@ -5,6 +5,9 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.assertEquals;
 import static rwperrott.stringtemplate.v4.StringFunctions.*;
 
+/**
+ * @author rwperrott
+ */
 public class StringFunctionsTest {
     @Test
     public void test_leftstr() {

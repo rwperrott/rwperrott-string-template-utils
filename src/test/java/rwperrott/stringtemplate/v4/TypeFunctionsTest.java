@@ -4,6 +4,9 @@ import org.testng.annotations.Test;
 
 import static org.testng.Assert.fail;
 
+/**
+ * @author rwperrott
+ */
 public class TypeFunctionsTest {
     @Test
     public void test() {

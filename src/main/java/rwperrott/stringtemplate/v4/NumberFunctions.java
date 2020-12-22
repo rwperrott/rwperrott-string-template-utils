@@ -2,7 +2,9 @@ package rwperrott.stringtemplate.v4;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
+/**
+ * @author rwperrott
+ */
 @SuppressWarnings("unused")
 public class NumberFunctions {
     public static void registerNumberAdapterFunctions() {

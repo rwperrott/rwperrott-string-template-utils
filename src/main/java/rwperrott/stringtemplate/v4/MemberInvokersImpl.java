@@ -8,6 +8,8 @@ import java.util.stream.Stream;
 
 /**
  * Only for package use
+ *
+ * @author rwperrott
  */
 final class MemberInvokersImpl implements MemberInvokers, Consumer<MemberInvoker>, Iterable<MemberInvoker> {
     private final ArrayList<MemberInvoker> list = new ArrayList<>();

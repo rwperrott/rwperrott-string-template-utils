@@ -15,6 +15,8 @@ import java.math.BigInteger;
  * <p>
  * I don't care about the StringTemplate developer's purity arguments, we need pragmatism like this, to make
  * StringTemplate a lot more usable.
+ *
+ * @author rwperrott
  */
 @SuppressWarnings("unused")
 public final class NumberInvokeAdaptor extends AbstractInvokeAdaptor<Number> {

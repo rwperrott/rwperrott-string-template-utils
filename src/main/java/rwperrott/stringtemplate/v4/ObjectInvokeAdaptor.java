@@ -5,6 +5,8 @@ import org.stringtemplate.v4.STGroup;
 
 /**
  * An alternative to ObjectAdapter
+ *
+ * @author rwperrott
  */
 @SuppressWarnings("unused")
 public final class ObjectInvokeAdaptor extends AbstractInvokeAdaptor<Object> {

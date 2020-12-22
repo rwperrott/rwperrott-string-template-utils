@@ -11,6 +11,8 @@ import static rwperrott.stringtemplate.v4.TypeConverter.box;
 
 /**
  * Only stores boxed Class keys, and converts key into a box Class v. Tries direct lookup, the instanceOf like lookup.
+ *
+ * @author rwperrott
  */
 final class TypeIndexMap extends Object2IntOpenHashMap<Class<?>> {
 

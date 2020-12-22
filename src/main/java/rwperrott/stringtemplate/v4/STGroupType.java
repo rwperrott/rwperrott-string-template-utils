@@ -20,6 +20,8 @@ import static org.stringtemplate.v4.STGroup.TEMPLATE_FILE_EXTENSION;
 
 /**
  * The type of STGroup to create.
+ *
+ * @author rwperrott
  */
 @SuppressWarnings("unused")
 public enum STGroupType implements MultilineAppender {

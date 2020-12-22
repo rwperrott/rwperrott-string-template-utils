@@ -16,6 +16,8 @@ import static java.util.Objects.requireNonNull;
  * <p>
  * Only compares parameters, because should already be group by name, return type should already have been filtered
  * out.
+ *
+ * @author rwperrott
  */
 public interface MemberInvoker extends Comparable<MemberInvoker> {
     TypeConverter[] typeConverters();

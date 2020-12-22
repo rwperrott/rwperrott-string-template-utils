@@ -21,6 +21,8 @@ import static rwperrott.stringtemplate.v4.TypeConverter.box;
  * Keyed by method/field name
  * <p>
  * Instances can only be obtained for a static cache.
+ *
+ * @author rwperrott
  */
 public final class ClassMembers {
     public final Class<?> cls; // Included to that duplicates can be detected

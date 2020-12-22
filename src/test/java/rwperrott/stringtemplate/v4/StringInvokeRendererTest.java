@@ -7,6 +7,9 @@ import java.util.Locale;
 
 import static org.testng.Assert.assertEquals;
 
+/**
+ * @author rwperrott
+ */
 public class StringInvokeRendererTest {
     @Test
     public void test() {

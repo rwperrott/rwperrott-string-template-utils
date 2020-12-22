@@ -7,6 +7,8 @@ import java.util.function.BiConsumer;
 
 /**
  * Simplified interface of Group and Template
+ *
+ * @author rwperrott
  */
 @SuppressWarnings("unused")
 public interface STErrorConsumer extends STErrorListener, BiConsumer<String, STMessage> {

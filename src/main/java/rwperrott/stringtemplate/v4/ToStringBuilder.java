@@ -8,9 +8,10 @@ import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
-
 /**
  * No StringJoiner is not better, it is quite limited!
+ *
+ * @author rwperrott
  */
 public final class ToStringBuilder extends MultiLineJoiner {
     public ToStringBuilder(final String className,

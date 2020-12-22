@@ -10,7 +10,7 @@ import static rwperrott.stringtemplate.v4.Indent.*;
  * <p>
  * Delimiter is always ","
  *
- * @author infernoz
+ * @author rwperrott
  */
 @SuppressWarnings("unused")
 public class MultiLineJoiner {

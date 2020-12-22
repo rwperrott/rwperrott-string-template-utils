@@ -9,6 +9,8 @@ import java.util.*;
 
 /**
  * Cache a Map of instance and static methods for each valueType, via filtered ClassCaches.
+ *
+ * @author rwperrott
  */
 public final class TypeFunctions {
 

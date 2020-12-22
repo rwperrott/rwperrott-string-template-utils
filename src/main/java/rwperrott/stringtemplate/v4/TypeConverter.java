@@ -18,6 +18,8 @@ import java.util.regex.Pattern;
  * String v is from a sequence of String parameter or null, Object v is a prior converted String parameter.
  * <p>
  * apply(..) first attempts to convert Object v, then attempt to convert String v.
+ *
+ * @author rwperrott
  */
 public final class TypeConverter implements Comparable<TypeConverter>, UnaryOperator<Object>, Predicate<Object> {
     private final int compareValue; // Used to store order v

@@ -5,6 +5,9 @@ import org.testng.annotations.Test;
 import static rwperrott.stringtemplate.v4.Test.test;
 import static rwperrott.stringtemplate.v4.ValueTemplateRenderer.*;
 
+/**
+ * @author rwperrott
+ */
 @SuppressWarnings("unused")
 public class AbstractInvokeAdaptorTest {
 

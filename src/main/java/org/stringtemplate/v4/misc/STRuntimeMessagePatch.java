@@ -2,6 +2,8 @@ package org.stringtemplate.v4.misc;
 
 /**
  * Converts relative template line numbers from STRuntimeMessages, to absolute line numbers
+ *
+ * @author rwperrott
  */
 public class STRuntimeMessagePatch extends STRuntimeMessage {
     final int absoluteStartLineNumber;

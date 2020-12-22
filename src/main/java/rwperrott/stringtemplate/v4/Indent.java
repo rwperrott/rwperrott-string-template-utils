@@ -2,6 +2,9 @@ package rwperrott.stringtemplate.v4;
 
 import static java.lang.ThreadLocal.withInitial;
 
+/**
+ * @author rwperrott
+ */
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public class Indent {
     private int depth;

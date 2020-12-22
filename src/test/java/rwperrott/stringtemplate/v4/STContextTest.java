@@ -7,6 +7,9 @@ import org.testng.annotations.Test;
 import static java.lang.String.format;
 import static org.testng.Assert.fail;
 
+/**
+ * @author rwperrott
+ */
 public class STContextTest {
 
     @Test

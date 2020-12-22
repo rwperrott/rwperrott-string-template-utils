@@ -6,6 +6,8 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * Make Throwable and STException less annoying.
+ *
+ * @author rwperrott
  */
 public final class STExceptions {
     private STExceptions() {

@@ -6,6 +6,8 @@ import org.stringtemplate.v4.STGroup;
 /**
  * Default registration of String fields and methods, and static methods from the following classes: StringFunctions,
  * org.apache.commons.lang3.StringUtils, org.apache.commons.text.WordUtils, org.apache.commons.text.StringEscapeUtils
+ *
+ * @author rwperrott
  */
 public final class StringInvokeAdaptor extends AbstractInvokeAdaptor<String> {
     public StringInvokeAdaptor() {

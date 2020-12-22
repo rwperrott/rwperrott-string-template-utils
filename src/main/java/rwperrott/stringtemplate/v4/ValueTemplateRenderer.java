@@ -15,7 +15,10 @@ import static rwperrott.stringtemplate.v4.STUtils.*;
  * Useful for rendering simple templates with only a "v" attribute Used by Test
  *
  * @param <R>
+ *
+ * @author rwperrott
  */
+
 @SuppressWarnings("unused")
 class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErrorConsumer {
     public final STContext ctx;
