@@ -90,38 +90,44 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
         if (null == value)
             throw new IllegalStateException("missing \"+VALUE_NAME+\" attribute");
 
-        final String templateText =
-                FMT_POOL.use(t -> {
-                    appendTemplateSignature(t, TEMPLATE_NAME, VALUE_NAME);
-                    t.append("<%<");
-                    // Not final, to allow reference swapping
-                    Fmt b = FMT_POOL.remove(), other = null;
-                    try {
-                        b.append(VALUE_NAME);
-                        //
-                        for (String propertyName : propertyNames)
-                            appendProperty(b, propertyName);
-                        //
-                        if (!wrappers.isEmpty()) {
-                            other = FMT_POOL.remove();
-                            for (String wrapper : wrappers) {
-                                other.format(wrapper, b);
-                                // Swap instances, to avoid having to create a String object
-                                final Fmt priorB = b;
-                                b = other;
-                                other = priorB;
-                            }
+        final String templateText;
+        {
+            final Fmt t = FMT_POOL.get();
+            try {
+                appendTemplateSignature(t, TEMPLATE_NAME, VALUE_NAME);
+                t.append("<%<");
+                // Not final, to allow reference swapping
+                Fmt b = FMT_POOL.get(), other = null;
+                try {
+                    b.append(VALUE_NAME);
+                    //
+                    for (String propertyName : propertyNames)
+                        appendProperty(b, propertyName);
+                    //
+                    if (!wrappers.isEmpty()) {
+                        // Wrap b, by swapping b and other, to avoid pointlessly creating a String objects.
+                        for (String wrapper : wrappers) {
+                            other = FMT_POOL.apply(other);
+                            other.format(wrapper, b);
+                            final Fmt priorB = b;
+                            b = other;
+                            other = priorB;
                         }
-                        // Add start and end of template.
-                        return t
-                                .sb()
-                                .append(b)
-                                .append(">%>")
-                                .toString();
-                    } finally {
-                        FMT_POOL.offer(b, other);
                     }
-                });
+                    // Add start and end of template.
+                    templateText = t
+                            .sb()
+                            .append(b)
+                            .append(">%>")
+                            .toString();
+                } finally {
+                    FMT_POOL.accept(b);
+                    FMT_POOL.accept(other);
+                }
+            } finally {
+                FMT_POOL.accept(t);
+            }
+        }
 
         Object r = null;
         Exception ex = null;
@@ -140,8 +146,9 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
             ex = e;
             failed = true;
         }
-        if (failed)
+        if (failed) {
             throw new STException(FMT_POOL.use(fmt -> fmt.concat("failed to render template: ", templateText)), ex);
+        }
         return r;
     }
 

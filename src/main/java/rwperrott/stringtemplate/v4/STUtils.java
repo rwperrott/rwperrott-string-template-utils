@@ -25,8 +25,6 @@ import static rwperrott.stringtemplate.v4.STGroupType.*;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class STUtils {
-    public static final SimplePool<Fmt> FMT_POOL = new SimplePool<>(4, Fmt::new, Fmt::clear, null);
-
     private STUtils() {
     }
 
@@ -55,10 +53,6 @@ public class STUtils {
         private Fmt() {
         }
 
-        public StringBuilder sb() {
-            return (StringBuilder)f.out();
-        }
-
         public Fmt clear() {
             clear(sb());
             return this;
@@ -66,6 +60,10 @@ public class STUtils {
 
         private static void clear(StringBuilder sb) {
             sb.setLength(0);
+        }
+
+        public StringBuilder sb() {
+            return (StringBuilder) f.out();
         }
 
         public String concat(Object... a) {
@@ -124,7 +122,13 @@ public class STUtils {
             return sb().toString();
         }
     }
-
+    public static final SoftPool<Fmt> FMT_POOL = SoftPool
+            .builder(Fmt::new)
+            .passivator(f -> {
+                f.clear();
+                return true;
+            })
+            .build();
     public static final char QUOTE = '\"';
     public static final char ROUND_START = '(';
     public static final char ROUND_END = ')';
@@ -321,6 +325,7 @@ public class STUtils {
                                                @NonNull final String... attributeNames) {
         appendTemplateSignature(a, templateName, Arrays.asList(attributeNames));
     }
+
     public static void appendTemplateSignature(@NonNull final Appendable a,
                                                @NonNull final String templateName,
                                                @NonNull final Collection<String> attributeNames) {
@@ -339,21 +344,6 @@ public class STUtils {
         }
     }
 
-    private static boolean isPlainProperty(String s) {
-        int i = s.length();
-        if (Character.isJavaIdentifierStart(s.charAt(0))) {
-            while (--i > 0)
-                if (!Character.isJavaIdentifierPart(s.charAt(i)))
-                    return false;
-        } else {
-            while (--i >= 0)
-                if (!Character.isDigit(s.charAt(i)))
-                    return false;
-        }
-                    
-        return true;
-    }
-    
     public static void appendProperty(@NonNull final Appendable a,
                                       @NonNull final Object property) {
         final String s = property.toString();
@@ -371,6 +361,21 @@ public class STUtils {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private static boolean isPlainProperty(String s) {
+        int i = s.length();
+        if (Character.isJavaIdentifierStart(s.charAt(0))) {
+            while (--i > 0)
+                if (!Character.isJavaIdentifierPart(s.charAt(i)))
+                    return false;
+        } else {
+            while (--i >= 0)
+                if (!Character.isDigit(s.charAt(i)))
+                    return false;
+        }
+
+        return true;
     }
 
 }
