@@ -12,6 +12,17 @@ import static org.testng.Assert.fail;
  */
 public class STContextTest {
 
+    private static STContext newSTContext(boolean allOptions) {
+        STContext ctx = new STContext();
+        if (allOptions)
+            ctx.allOptions();
+        return ctx;
+    }
+
+    private static STGroup newSTGroup() {
+        return new STGroupString("test", "hello(you) ::= <%hello <you>%>");
+    }
+
     @Test
     public void testRegisterRenderer() {
         final Class<?> type = String.class;
@@ -46,9 +57,8 @@ public class STContextTest {
                                       final String attributeType,
                                       final String rendererClassName,
                                       final boolean expectedSuccess) {
-        STContext ctx = newSTContext(addDefaults);
-        STGroup stg = newSTGroup();
-        try {
+        try (STContext ctx = newSTContext(addDefaults)) {
+            STGroup stg = newSTGroup();
             ctx.registerRenderer(stg, attributeType, rendererClassName);
             if (!expectedSuccess)
                 fail(format("unexpectedly success, for registerRenderer, for %s and %s", attributeType, rendererClassName));
@@ -59,12 +69,11 @@ public class STContextTest {
     }
 
     private void testRegisterModelAdapter(final boolean addDefaults,
-                                      final String attributeType,
-                                      final String modelAdapterClassName,
-                                      final boolean expectedSuccess) {
-        STContext ctx = newSTContext(addDefaults);
-        STGroup stg = newSTGroup();
-        try {
+                                          final String attributeType,
+                                          final String modelAdapterClassName,
+                                          final boolean expectedSuccess) {
+        try (STContext ctx = newSTContext(addDefaults)) {
+            STGroup stg = newSTGroup();
             ctx.registerModelAdaptor(stg, attributeType, modelAdapterClassName);
             if (!expectedSuccess)
                 fail(format("unexpectedly success, for registerRenderer, for %s and %s", attributeType, modelAdapterClassName));
@@ -72,17 +81,6 @@ public class STContextTest {
             if (expectedSuccess)
                 fail(format("unexpectedly failure, for registerRenderer, for %s and %s", attributeType, modelAdapterClassName), e);
         }
-    }
-
-    private static STContext newSTContext(boolean allOptions) {
-        STContext ctx = new STContext();
-        if (allOptions)
-            ctx.allOptions();
-        return ctx;
-    }
-
-    private static STGroup newSTGroup() {
-        return new STGroupString("test", "hello(you) ::= <%hello <you>%>");
     }
 
 }
