@@ -2,11 +2,15 @@ package rwperrott.stringtemplate.v4;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+
 /**
  * @author rwperrott
  */
 @SuppressWarnings("unused")
 public class NumberFunctions {
+    private NumberFunctions() {
+    }
+
     public static void registerNumberAdapterFunctions() {
         TypeFunctions.registerFunctionClasses(Byte.class, NumberFunctions.class, StrictMath.class);
         TypeFunctions.registerFunctionClasses(Short.class, NumberFunctions.class, StrictMath.class);
