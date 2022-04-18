@@ -13,15 +13,18 @@ import java.util.Locale;
 /**
  * Sub-string functions, with wrapping of negative offset and len values.
  * <p>
- * Defaults registers methods from String, org.apache.commons.lang3.StringUtils,
+ * Default registers methods from String, org.apache.commons.lang3.StringUtils,
  * <p>
  * I don't care about the StringTemplate developer's purity arguments, we need pragmatism like this, to make
  * StringTemplate a lot more usable.
  *
  * @author rwperrott
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "SpellCheckingInspection"})
 public final class StringFunctions {
+    private StringFunctions() {
+    }
+
     public static void registerAdapterFunctions() {
         registerRendererFunctions();
 
@@ -33,7 +36,7 @@ public final class StringFunctions {
                                               Short.class,
                                               Integer.class,
                                               Float.class
-                                             );
+        );
     }
 
     /**
@@ -46,7 +49,7 @@ public final class StringFunctions {
                                               StringUtils.class,
                                               WordUtils.class,
                                               StringEscapeUtils.class
-                                             );
+        );
     }
 
     /**
@@ -54,14 +57,13 @@ public final class StringFunctions {
      *
      * @param value src
      * @param len   if less than zero, v length added
-     *
-     * @return "" if len less than or equal to zero; v if len more than or equal to zero.
+     * @return "" or left part of src starting with first character
      */
     public static String leftstr(@NonNull String value, int len) {
         final int n = value.length();
-        if (len < 0) {
+        if (len < 0)
             len += n;
-        } else if (len >= n)
+        else if (len >= n)
             return value;
         return len <= 0 ? "" : value.substring(0, len);
     }
@@ -70,36 +72,35 @@ public final class StringFunctions {
      * Return len character String from the end of v.
      *
      * @param value src
-     * @param len   if less than zero, v length added
-     *
-     * @return "" if len less than or equal to zero; v if len more than or equal to zero.
+     * @param len   if less than zero, src length added
+     * @return "" or right part of src ending with last character.
      */
     public static String rightstr(@NonNull String value, int len) {
         final int n = value.length();
-        if (len >= n)
-            return value;
         if (len < 0)
             len += n;
+        else if (len >= n)
+            return value;
         return len <= 0 ? "" : value.substring(n - len, n);
     }
 
     /**
      * @param value  src
      * @param offset can be negative
-     * @param len    if negative result is ""
-     *
-     * @return result of substr(offset, offset + len);
+     * @param len    if less than zero, src length added
+     * @return result of substr(offset, offset + len)
      */
     public static String midstr(@NonNull String value, int offset, int len) {
+        if (len < 0)
+            len = value.length() - len;
         return substr(value, offset, offset + len);
     }
 
     /**
      * @param value src
      * @param start if negative set to 0
-     * @param end   if more than v length, set to v length
-     *
-     * @return result, "" if start more than or equal to end
+     * @param end   if negative "" returned, if more than src length, reduced to src length
+     * @return "" or part of src
      */
     public static String substr(@NonNull String value, int start, int end) {
         if (start < 0)
@@ -107,7 +108,7 @@ public final class StringFunctions {
         final int n = value.length();
         if (end > n)
             end = n;
-        return start >= end ? "" : value.substring(start, end);
+        return end <= start ? "" : value.substring(start, end);
     }
 
     /**
