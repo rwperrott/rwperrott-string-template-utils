@@ -13,9 +13,9 @@ import java.util.function.*;
  * Based upon LinkedBlockingQueue, commons-pool PooledObjectFactory, and WeakHashMap.
  *
  * @param <E> resource type.
- *
  * @author rwperrott
  */
+@SuppressWarnings("unused")
 public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consumer<E> {
     private final int capacity;
     private final AtomicInteger count = new AtomicInteger();
@@ -26,8 +26,8 @@ public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consume
     private final ReferenceQueue<E> refQueue;
     private final ReentrantLock getLock = new ReentrantLock();
     private final ReentrantLock acceptLock = new ReentrantLock();
-    transient Node<E> head;
-    private transient Node<E> last;
+    private Node<E> head;
+    private Node<E> last;
 
     private SoftPool(int capacity,
                      final Supplier<E> supplier,
@@ -42,8 +42,8 @@ public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consume
         this.destroyer = destroyer;
         last = head = new Node<>(null);
         refQueue = null == activator
-                   ? null
-                   : new ReferenceQueue<>();
+                ? null
+                : new ReferenceQueue<>();
     }
 
     /**
@@ -52,14 +52,13 @@ public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consume
      * Useful for clear-able builder objects, like StringBuilder.
      *
      * @param e null or resource
-     *
      * @return resource
      */
     @Override
     public E apply(final E e) {
         if (null != e
-            && (null == passivator || passivator.test(e))
-            && (null == activator || activator.test(e)))
+                && (null == passivator || passivator.test(e))
+                && (null == activator || activator.test(e)))
             return e;
         return get();
     }
@@ -72,23 +71,23 @@ public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consume
     public E get() {
         cleanup();
 
-        final AtomicInteger count = this.count;
-        if (count.get() == 0)
+        final AtomicInteger count0 = this.count;
+        if (count0.get() == 0)
             return supplier.get();
         //
-        final ReentrantLock acceptLock = this.getLock;
-        acceptLock.lock();
+        final ReentrantLock getLock0 = this.getLock;
+        getLock0.lock();
         try {
             // Look for a non-null SoftReference value.
-            while (count.get() > 0) {
+            while (count0.get() > 0) {
                 //dequeue
                 final Node<E> h = head;
-                final Node<E> first = h.next;
-                h.next = h; // help GC
+                final Node<E> first = h.nextNode;
+                h.nextNode = h; // help GC
                 head = first;
                 final E x = first.get();
                 first.clear();
-                count.getAndDecrement();
+                count0.getAndDecrement();
                 if (null != x) {
                     if (null == activator || activator.test(x))
                         return x;
@@ -97,7 +96,7 @@ public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consume
                 }
             }
         } finally {
-            acceptLock.unlock();
+            getLock0.unlock();
         }
         return supplier.get();
     }
@@ -152,19 +151,19 @@ public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consume
             return;
         }
         //
-        final AtomicInteger count = this.count;
-        if (count.get() == capacity)
+        final AtomicInteger count0 = this.count;
+        if (count0.get() == capacity)
             return;
         //
-        final ReentrantLock acceptLock = this.acceptLock;
-        acceptLock.lock();
+        final ReentrantLock acceptLock0 = this.acceptLock;
+        acceptLock0.lock();
         try {
-            if (count.get() < capacity)
-                last = last.next = null == refQueue
-                                   ? new Node<>(e)
-                                   : new Node<>(e, refQueue);
+            if (count0.get() < capacity)
+                last = last.nextNode = null == refQueue
+                        ? new Node<>(e)
+                        : new Node<>(e, refQueue);
         } finally {
-            acceptLock.unlock();
+            acceptLock0.unlock();
         }
     }
 
@@ -175,8 +174,8 @@ public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consume
         acceptLock.lock();
         getLock.lock();
         try {
-            for (Node<E> p, h = head; (p = h.next) != null; h = p) {
-                h.next = h;
+            for (Node<E> p, h = head; (p = h.nextNode) != null; h = p) {
+                h.nextNode = h;
                 p.clear();
             }
             head = last;
@@ -187,8 +186,8 @@ public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consume
     }
 
     // SoftReference extended as a single linked-list node.
-    final static class Node<E> extends SoftReference<E> {
-        Node<E> next;
+    static final class Node<E> extends SoftReference<E> {
+        Node<E> nextNode;
 
         Node(E x) {
             super(x);
@@ -199,7 +198,8 @@ public final class SoftPool<E> implements Supplier<E>, UnaryOperator<E>, Consume
         }
     }
 
-    public final static class Builder<E> {
+    @SuppressWarnings("unused")
+    public static final class Builder<E> {
         private final Supplier<E> supplier;
         private int capacity = Integer.MAX_VALUE;
         private Predicate<E> passivator;
