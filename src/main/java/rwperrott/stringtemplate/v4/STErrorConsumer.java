@@ -20,7 +20,7 @@ public interface STErrorConsumer extends STErrorListener, BiConsumer<String, STM
      * Don't ignore ErrorType.NO_SUCH_PROPERTY, it can be useful to accept it as a warning!
      */
     default void runTimeError(STMessage msg) {
-        accept("ST RuntimeTime", msg);
+        accept("ST Runtime", msg);
     }
 
     default void IOError(STMessage msg) {
