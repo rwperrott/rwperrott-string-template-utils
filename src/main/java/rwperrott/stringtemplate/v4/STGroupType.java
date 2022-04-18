@@ -28,13 +28,13 @@ public enum STGroupType implements MultilineAppender {
     /**
      * If source contains "::=", new STGroupString(null,source,delimiterStartChar,delimiterStopChar) will be used.
      */
-    string(STGroupString.class) {
+    STRING(STGroupString.class) {
         private STGroupString as(final Object o) {
-            return (STGroupString)o;
+            return (STGroupString) o;
         }
 
         @Override
-        public STGroup getSTGroup(final @NonNull String sourceName, final @NonNull String source, URL url, String encoding) {
+        public STGroup getSTGroup(final @NonNull String sourceName, final @NonNull String source, URL url, @NonNull String encoding) {
             return new STGroupString(sourceName, source);
         }
 
@@ -73,7 +73,7 @@ public enum STGroupType implements MultilineAppender {
      * If not String and source ends with ".st" or ".stg" new STGroupFile(url,encoding,
      * delimiterStartChar,delimiterStopChar) will be used.
      */
-    file(STGroupFile.class) {
+    FILE(STGroupFile.class) {
         private STGroupFile as(final @NonNull Object o) {
             return (STGroupFile) o;
         }
@@ -113,16 +113,16 @@ public enum STGroupType implements MultilineAppender {
         }
 
         @Override
-        Reader openReader(final @NonNull STGroup stGroup, final @NonNull Object source, final String encoding) throws IOException {
+        Reader openReader(final @NonNull STGroup stGroup, final @NonNull Object source, final @NonNull String encoding) throws IOException {
             return new InputStreamReader(((URL) source).openStream(), encoding);
         }
     },
     /**
      * If not string or file, new STGroupDir(url,encoding, delimiterStartChar,delimiterStopChar) will be used.
      */
-    directory(STGroupDir.class) {
+    DIRECTORY(STGroupDir.class) {
         private STGroupDir as(Object o) {
-            return (STGroupDir)o;
+            return (STGroupDir) o;
         }
 
         @Override
