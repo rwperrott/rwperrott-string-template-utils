@@ -14,6 +14,9 @@ import static java.util.Comparator.naturalOrder;
  */
 @SuppressWarnings("unused")
 public class ObjectFunctions {
+    private ObjectFunctions() {
+    }
+
     public static void registerAdapterFunctions() {
         TypeFunctions.registerFunctionClasses(Object.class,
                                               ObjectFunctions.class);
@@ -22,22 +25,23 @@ public class ObjectFunctions {
     /**
      * @param o   an array of objects or primitives
      * @param <T> comparable type
-     *
      * @return a naturalOrder sorted list of objects, these will be box objects for an array of primitives
      */
-    @SuppressWarnings("unchecked")
     public static <T extends Comparable<T>> List<T> toSortedList(Object o) {
-        List<T> list = (List<T>) toList(o);
+        List<T> list = toList(o);
         list.sort(naturalOrder());
         return list;
     }
 
     /**
      * @param o an array of objects or primitives
-     *
      * @return a list of objects, these will be box objects for an array of primitives
      */
-    public static List<?> toList(Object o) {
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> toList(Object o) {
+        if (o instanceof List)
+            return (List<T>)o;
+        //
         final Class<?> cls = o.getClass();
         if (!cls.isArray())
             throw new UnsupportedOperationException(cls + " is not an Array");
@@ -45,28 +49,22 @@ public class ObjectFunctions {
         final List<Object> list = new ArrayList<>(n);
         for (int i = 0; i < n; i++)
             list.add(Array.get(o, i));
-        return list;
+        return (List<T>) list;
     }
 
     /**
      * @param o an array of objects or primitives
-     *
      * @return an ordered set of objects, these will be box objects for an array of primitives
      */
-    public static Set<?> toSet(Object o) {
-        if (o instanceof List)
-            return new LinkedHashSet<>((List<?>) o);
+    public static <T> Set<T> toSet(Object o) {
         return new LinkedHashSet<>(toList(o));
     }
 
     /**
      * @param o an array of objects or primitives
-     *
      * @return a naturalOrder sorted set of objects, these will be box objects for an array of primitives
      */
-    public static Set<?> toSortedSet(Object o) {
-        if (o instanceof List)
-            return new TreeSet<>((List<?>) o);
+    public static <T> Set<T> toSortedSet(Object o) {
         return new TreeSet<>(toList(o));
     }
 }
