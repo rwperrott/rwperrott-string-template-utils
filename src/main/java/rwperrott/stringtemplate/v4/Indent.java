@@ -10,33 +10,18 @@ public class Indent {
     private int depth;
     private static final ThreadLocal<Indent> THREAD_LOCAL = withInitial(Indent::new);
 
-    public static void enter(boolean multiline) {
-        if (multiline)
-            enter();
-    }
-
-    public static void enter() {
+    public static void increment() {
         THREAD_LOCAL.get().depth++;
     }
 
-    public static void exit(boolean multiline) {
-        if (multiline)
-            exit();
-    }
-
-    public static void exit() {
+    public static void decrement() {
         THREAD_LOCAL.get().depth--;
     }
 
-    public static StringBuilder indent(StringBuilder sb, boolean multiline) {
-        return multiline ? indent(sb) : sb;
-    }
-
-    public static StringBuilder indent(StringBuilder sb) {
+    public static StringBuilder appendTo(StringBuilder sb) {
         int d = THREAD_LOCAL.get().depth;
         while (d-- > 0)
             sb.append("  ");
         return sb;
     }
-
 }

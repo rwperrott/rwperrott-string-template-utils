@@ -36,7 +36,8 @@ public class MultiLineJoiner {
         this.multiline = multiline;
         this.suffix = requireNonNull(suffix, "suffix");
         sb.append(requireNonNull(prefix, "prefix"));
-        enter(multiline);
+        if (multiline)
+            increment();
     }
 
     public MultiLineJoiner(final MultiLineJoiner mlj,
@@ -47,12 +48,17 @@ public class MultiLineJoiner {
         this.multiline = mlj.multiline;
         this.suffix = requireNonNull(suffix, "suffix");
         sb.append(requireNonNull(prefix, "prefix"));
-        enter(multiline);
+        if (multiline)
+            increment();
+    }
+
+    private void ensureIncomplete() {
+        if (null == suffix)
+            throw new IllegalStateException("completed");
     }
 
     public StringBuilder sb() {
-        if (null == suffix)
-            throw new IllegalStateException("completed");
+        ensureIncomplete();
         return sb;
     }
 
@@ -65,8 +71,7 @@ public class MultiLineJoiner {
     }
 
     public void addName(final String name) {
-        if (null == suffix)
-            throw new IllegalStateException("completed");
+        ensureIncomplete();
         mark();
         delimit();
         sb.append(name).append('=');
@@ -78,11 +83,11 @@ public class MultiLineJoiner {
     }
 
     public void delimit() {
-        if (null == suffix)
-            throw new IllegalStateException("completed");
+        ensureIncomplete();
         if (count++ > 0) {
-            sb.append(multiline ? ",\r\n" : ", ");
-            indent(sb, multiline);
+            sb.append(multiline ? ",\n" : ", ");
+            if (multiline)
+                appendTo(sb);
         }
     }
 
@@ -99,11 +104,11 @@ public class MultiLineJoiner {
             boolean first,
             boolean multiline) {
         if (!first && multiline)
-            sb.append("\r\n");
+            sb.append("\n");
         //
         if (multiline) {
-            exit();
-            indent(sb);
+            decrement();
+            appendTo(sb);
         } else
             sb.append(' ');
         sb.append(suffix);
