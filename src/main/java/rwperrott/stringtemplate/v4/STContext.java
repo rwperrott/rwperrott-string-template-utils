@@ -17,7 +17,7 @@ import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 
 import static java.lang.String.format;
-import static rwperrott.stringtemplate.v4.STUtils.FMT_POOL;
+import static rwperrott.stringtemplate.v4.Fmt.POOL;
 
 /**
  * Contains lazy cache maps for start line numbers of templates in files, and for class name to Class lookup.
@@ -36,8 +36,9 @@ public class STContext implements Closeable {
     private final Set<String> packageNames = new LinkedHashSet<>();
     private final Map<String, Class<?>> classCache = new HashMap<>();
     private final Object lock = new Object();
-    // Allow lazy initialisation to allow for options to be added.
+    // A lazy initialisation flag to allow more options to be added before configuration state locked.
     private boolean initialised;
+    // Class loader off Thread, to allow for custom classloader e.g. for a Maven plugin.
     private ClassLoader classLoader;
 
     public STContext() {
@@ -48,7 +49,6 @@ public class STContext implements Closeable {
      * Set a custom ClassLoader.
      *
      * @param classLoader a custom ClassLoader
-     *
      * @return this
      */
     public STContext classLoader(final @NonNull ClassLoader classLoader) {
@@ -81,7 +81,6 @@ public class STContext implements Closeable {
      * Set some options.
      *
      * @param options .
-     *
      * @return this
      */
     public STContext options(final @NonNull Option... options) {
@@ -112,7 +111,7 @@ public class STContext implements Closeable {
      * @param packageNames .
      */
     public STContext packages(@NonNull String... packageNames) {
-        if (null != packageNames && 0 != packageNames.length)
+        if (0 != packageNames.length)
             synchronized (lock) {
                 if (!initialised)
                     init();
@@ -122,9 +121,9 @@ public class STContext implements Closeable {
     }
 
     private void init() {
-        if (options.contains(Option.AddDefaultPackages))
+        if (options.contains(Option.ADD_DEFAULT_PACKAGES))
             Collections.addAll(packageNames, DEFAULT_PACKAGE_NAMES);
-        if (options.contains(Option.AddDefaultClasses))
+        if (options.contains(Option.ADD_DEFAULT_CLASSES))
             for (Class<?> cls : DEFAULT_CLASSES)
                 cacheClass(cls);
         initialised = true;
@@ -167,63 +166,67 @@ public class STContext implements Closeable {
     }
 
     /**
-     *
-     * @param stGroup target
+     * @param stGroup           target
      * @param attributeTypeName .
      * @param rendererClassName .
      */
     public final void registerRenderer(@NonNull final STGroup stGroup,
                                        @NonNull final String attributeTypeName,
                                        @NonNull final String rendererClassName) {
-        registerAttributeExtension(stGroup,
-                                   attributeTypeName,
+        registerAttributeExtension(attributeTypeName,
                                    rendererClassName,
                                    AttributeRenderer.class,
                                    stGroup::registerRenderer);
     }
 
-    private <T> void registerAttributeExtension(
-            final STGroup stGroup,
-            final String attributeTypeName,
-            final String extensionClassName,
-            final Class<T> extensionType,
-            final BiConsumer<Class<?>, T> registerer) {
-        final Class<?> keyType = getClass("attributeType", attributeTypeName, Object.class);
-        final T valueInstance = instanceOf(extensionType.getSimpleName(), extensionClassName, extensionType);
-        registerer.accept(keyType, valueInstance);
-    }
-
     /**
      * @param stGroup the target
-     * @param map a map of AttributeRenderer class name keyed by attribute type name
+     * @param map     a map of AttributeRenderer class name keyed by attribute type name
      */
     public final void registerRenderers(@NonNull final STGroup stGroup,
                                         @NonNull final Map<String, String> map) {
-        registerAttributeExtensions(stGroup,
-                                    map,
+        registerAttributeExtensions(map,
                                     AttributeRenderer.class,
                                     stGroup::registerRenderer);
     }
 
     /**
      * @param stGroup the target
-     * @param map a map of ModelAdaptor class name keyed by attribute type name
+     * @param map     a map of ModelAdaptor class name keyed by attribute type name
      */
     public final void registerModelAdaptors(@NonNull final STGroup stGroup,
                                             @NonNull final Map<String, String> map) {
-        registerAttributeExtensions(stGroup,
-                                    map,
+        registerAttributeExtensions(map,
                                     ModelAdaptor.class,
                                     stGroup::registerModelAdaptor);
     }
 
+
+    public final void registerModelAdaptor(@NonNull final STGroup stGroup,
+                                           @NonNull final String attributeType,
+                                           @NonNull final String modelAdapterClassName) {
+        registerAttributeExtension(attributeType,
+                                   modelAdapterClassName,
+                                   ModelAdaptor.class,
+                                   stGroup::registerModelAdaptor);
+    }
+
     private <T> void registerAttributeExtensions(
-            final STGroup stGroup,
             final Map<String, String> typeExtensionMap,
             final Class<T> extensionTypeName,
             final BiConsumer<Class<?>, T> registerer) {
         typeExtensionMap.forEach((attributeType, extensionClassName) ->
-                                         registerAttributeExtension(stGroup, attributeType, extensionClassName, extensionTypeName, registerer));
+                                         registerAttributeExtension(attributeType, extensionClassName, extensionTypeName, registerer));
+    }
+
+    private <T> void registerAttributeExtension(
+            final String attributeTypeName,
+            final String extensionClassName,
+            final Class<T> extensionType,
+            final BiConsumer<Class<?>, T> registerer) {
+        final Class<?> keyType = getClass("attributeType", attributeTypeName, extensionType);
+        final T valueInstance = instanceOf(extensionType.getSimpleName(), extensionClassName, extensionType);
+        registerer.accept(keyType, valueInstance);
     }
 
     // Used by Group to get type for registerRenderer and registerModelAdaptor
@@ -241,31 +244,7 @@ public class STContext implements Closeable {
             // Expand simple names for java.lang package
             final int p = className.lastIndexOf('.');
             if (-1 == p) {
-                Exception fail = null; // Store them all, maybe useful for a duf package name
-                for (String packageName : packageNames) {
-                    final String key = FMT_POOL.use(fmt -> fmt.concat(packageName, ".", className));
-                    try {
-                        cls = classLoader.loadClass(key);
-                        if (!type.isAssignableFrom(cls)) {
-                            throw new IllegalArgumentException(format("%s '%s' not an instanceof %s",
-                                                                      label, className, type.getTypeName()), null);
-                        }
-                        classCache.put(className, cls);
-                        // Also cache full key
-                        classCache.put(key, cls);
-                        return cls;
-                    } catch (ClassNotFoundException ex) {
-                        if (null == fail)
-                            fail = ex;
-                        else
-                            fail.addSuppressed(ex);
-                    } catch (Exception e) {
-                        throw new IllegalArgumentException(format("unexpected failure for label \"%s\" className: \"%s.%s\" ",
-                                                                  label, packageName, className), e);
-                    }
-                }
-                throw new IllegalArgumentException(format("%s '%s' not found",
-                                                          label, className), fail);
+                cls = getPackageClass(label, className, type);
             } else {
                 try {
                     cls = classLoader.loadClass(className);
@@ -282,6 +261,35 @@ public class STContext implements Closeable {
         }
     }
 
+    private Class<?> getPackageClass(final String label, final String className, Class<?> type) {
+        Exception fail = null; // Store them all, maybe useful for a duf package name
+        for (String packageName : packageNames) {
+            final String key = POOL.use(fmt -> fmt.concat(packageName, ".", className));
+            try {
+                Class<?> cls = classLoader.loadClass(key);
+                if (!type.isAssignableFrom(cls)) {
+                    throw new IllegalArgumentException(format("%s '%s' not an instanceof %s",
+                                                              label, className, type.getTypeName()), null);
+                }
+                classCache.put(className, cls);
+                // Also cache full key
+                classCache.put(key, cls);
+                return cls;
+            } catch (ClassNotFoundException ex) {
+                if (null == fail)
+                    fail = ex;
+                else
+                    fail.addSuppressed(ex);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(format("unexpected failure for label \"%s\" className: \"%s.%s\" ",
+                                                          label, packageName, className), e);
+            }
+        }
+        throw new IllegalArgumentException(format("%s '%s' not found",
+                                                  label, className), fail);
+    }
+
+
     // Used by Group to create instances of AttributeRender and ModelAdapter
     @SuppressWarnings({"unchecked", "UseSpecificCatch"})
     private <T> T instanceOf(final String label, final String className, Class<?> type) {
@@ -293,18 +301,12 @@ public class STContext implements Closeable {
                                                    label, className, type.getTypeName()), ex);
         }
     }
-
-    public final void registerModelAdaptor(@NonNull final STGroup stGroup,
-                                           @NonNull final String attributeType,
-                                           @NonNull final String modelAdapterClassName) {
-        registerAttributeExtension(stGroup,
-                                   attributeType,
-                                   modelAdapterClassName,
-                                   ModelAdaptor.class,
-                                   stGroup::registerModelAdaptor);
-    }
-
     public STMessage patch(@NonNull STMessage msg, @NonNull String encoding) {
+        if (msg instanceof STRuntimeMessagePatch) {
+
+            return msg; // just-in-case the patch is reapplied by mistake.
+        }
+        //
         if (msg instanceof STRuntimeMessage) {
             final STRuntimeMessage strm = (STRuntimeMessage) msg;
             InstanceScope scope = strm.scope;
@@ -328,9 +330,10 @@ public class STContext implements Closeable {
                                                        name, stGroup.getClass().getSimpleName(), STGroupType.of(stGroup).getSource(stGroup)));
             }
         }
-        // Probably don't need to patch
-        // STCompiletimeMessage, STGroupCompiletimeMessage and STLexerMessage,
-        // because they get the line number from Token.
+        //
+        // Note: it only looks necessary to patch the message in a STRuntimeMessage,
+        // not STCompiletimeMessage, STGroupCompiletimeMessage, or STLexerMessage,
+        // because these three get the line number from Token.
         return msg;
     }
 
@@ -365,8 +368,8 @@ public class STContext implements Closeable {
      * Current options, which may expand, thus the ALL constant.
      */
     public enum Option {
-        AddDefaultPackages,
-        AddDefaultClasses;
+        ADD_DEFAULT_PACKAGES,
+        ADD_DEFAULT_CLASSES;
         private static final EnumSet<Option> ALL = EnumSet.allOf(Option.class);
     }
 
