@@ -7,7 +7,10 @@ import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroup;
 import org.stringtemplate.v4.misc.STNoSuchPropertyException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.StringJoiner;
 import java.util.function.UnaryOperator;
 
 /**
@@ -18,7 +21,6 @@ import java.util.function.UnaryOperator;
  * redundant Security costs of calling invoke on Field or Method Member objects.
  *
  * @param <T> type to be adapted
- *
  * @author rwperrott
  */
 public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
@@ -82,7 +84,7 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
         private final Object value;
         private final String propertyName;
         private final MemberInvokers memberInvokers;
-        private final List<Object> args = new ArrayList<>();
+        private final ArrayList<Object> args = new ArrayList<>();
         /**
          * Saved, so can be invoke last
          */
@@ -117,21 +119,21 @@ public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
             if (null != mi)
                 latestMatchingInvoker = mi;
             return args.size() < memberInvokers.maxTypeConverterCount()
-                   ? this
-                   : invoke(); // No matches after this, so use latestMatchingInvoker
+                    ? this
+                    : invoke(); // No matches after this, so use latestMatchingInvoker
         }
 
         // Called by apply or toString.
         @SuppressWarnings({"rawtypes", "unchecked"})
         private Object invoke() {
-            int i = 0, n = args.size();
+            int n = args.size();
             if (null == latestMatchingInvoker)
-                throw STExceptions.noSuchPropertyInObject(value,join(propertyName, args, i, n),
+                throw STExceptions.noSuchPropertyInObject(value, join(propertyName, args, 0, n),
                                                           new IllegalArgumentException("No matching member found"));
-            //
             Object result = null;
+            int i = 0;
             try {
-                // Some of the properties found a longest match method, so can resolve model and some properties to an object result.
+                // Some of the properties found the longest match method, so can resolve model and some properties to an object result.
                 result = latestMatchingInvoker.invoke(value, args);
 
                 // For each excess property:

@@ -26,7 +26,7 @@ public final class StringInvokeRenderer implements AttributeRenderer<String> {
     }
 
     @Override
-    public final String toString(final String value, final String formatString, final Locale locale) {
+    public String toString(final String value, final String formatString, final Locale locale) {
         if (null != formatString) {
             final String alias = toAlias(formatString);
             final MemberInvokers mis = TypeFunctions.get(value.getClass(), alias);
