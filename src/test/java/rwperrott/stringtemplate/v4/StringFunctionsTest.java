@@ -9,94 +9,127 @@ import static rwperrott.stringtemplate.v4.StringFunctions.*;
  * @author rwperrott
  */
 public class StringFunctionsTest {
+    private static final String S = "012";
+
+    private static String sSubstr(int beginIndex, int endIndex) {
+        return beginIndex >= endIndex ? "" : S.substring(beginIndex, endIndex);
+    }
+
     @Test
     public void test_leftstr() {
-        assertEquals("012", leftstr(S, 4), "leftstr(S, 4)");
-        assertEquals("012", leftstr(S, 3), "leftstr(S, 3)");
-        assertEquals("01", leftstr(S, 2), "leftstr(S, 2)");
-        assertEquals("0", leftstr(S, 1), "leftstr(S, 1)");
-        assertEquals("", leftstr(S, 0), "leftstr(S, 0)");
-        assertEquals(leftstr(S, 2), leftstr(S, -1), "leftstr(S, -1)");
-        assertEquals(leftstr(S, 1), leftstr(S, -2), "leftstr(S, -2)");
-        assertEquals(leftstr(S, 0), leftstr(S, -3), "leftstr(S, -3)");
-        assertEquals(leftstr(S, 0), leftstr(S, -4), "leftstr(S, -4)");
+        assertEquals(leftstr(S, 4), "012");
+        assertEquals(leftstr(S, 3), "012");
+        assertEquals(leftstr(S, 2), "01");
+        assertEquals(leftstr(S, 1), "0");
+        assertEquals(leftstr(S, 0), "");
+        assertEquals(leftstr(S, -1), "01");
+        assertEquals(leftstr(S, -2), "0");
+        assertEquals(leftstr(S, -3), "");
+        assertEquals(leftstr(S, -4), "");
     }
 
     @Test
     public void test_rightstr() {
-        assertEquals("012", rightstr(S, 4), "rightstr(S, 4)");
-        assertEquals("012", rightstr(S, 3), "rightstr(S, 3)");
-        assertEquals("12", rightstr(S, 2), "rightstr(S, 2)");
-        assertEquals("2", rightstr(S, 1), "rightstr(S, 1)");
-        assertEquals("", rightstr(S, 0), "rightstr(S, 0)");
-        assertEquals(rightstr(S, 2), rightstr(S, -1), "rightstr(S, -2)");
-        assertEquals(rightstr(S, 1), rightstr(S, -2), "rightstr(S, -2)");
-        assertEquals(rightstr(S, 0), rightstr(S, -3), "rightstr(S, -3)");
-        assertEquals(rightstr(S, 0), rightstr(S, -4), "rightstr(S, -4)");
+        assertEquals(rightstr(S, 4), "012");
+        assertEquals(rightstr(S, 3), "012");
+        assertEquals(rightstr(S, 2), "12");
+        assertEquals(rightstr(S, 1), "2");
+        assertEquals(rightstr(S, 0), "");
+        assertEquals(rightstr(S, -1), "12");
+        assertEquals(rightstr(S, -2), "2");
+        assertEquals(rightstr(S, -3), "");
+        assertEquals(rightstr(S, -4), "");
     }
 
-    /**
-     * Indirectly tests substr too, so no need for a separate testSplit for it too.
-     */
-    @SuppressWarnings("unused")
-    @Test
     public void test_midstr() {
-        final int sLen = S.length();
-        for (int o = 0; o < 5; o++) {
-            for (int len = 0; len <= 5; len++) {
-                final int end = Math.min(o + len, sLen);
-                final String expected = o >= end ? "" : S.substring(o, end);
-                try {
-                    assertEquals(midstr(S, o, len),
-                                 expected,
-                                 String.format("o=%d, len=%d", o, len));
-                } catch (AssertionError e) {
-                    midstr(S, o, len);
-                    throw e;
-                }
-            }
-            for (int len = -5; len < 0; len++) {
-                final int end = Math.min(o + len, sLen);
-                final String expected = o >= end ? "" : S.substring(o, end);
-                try {
-                    assertEquals(midstr(S, o, len),
-                                 expected,
-                                 String.format("o=%d, len=%d", o, len));
-                } catch (AssertionError e) {
-                    midstr(S, o, len);
-                    throw e;
-                }
-            }
-        }
-        // Negative offset
-        for (int o = -5; o < 0; o++) {
-            int start = 0;
-            for (int len = 0; len <= 5; len++) {
-                int end = Math.min(o + len, sLen);
-                final String expected = start >= end ? "" : S.substring(start, end);
-                try {
-                    assertEquals(midstr(S, o, len),
-                                 expected,
-                                 String.format("o=%d, len=%d", o, len));
-                } catch (AssertionError e) {
-                    String r = midstr(S, o, len);
-                    throw e;
-                }
-            }
-            for (int len = -5; len < 0; len++) {
-                int end = o + len;
-                final String expected = start >= end ? "" : S.substring(start, end);
-                try {
-                    assertEquals(midstr(S, o, len),
-                                 expected,
-                                 String.format("o=%d, len=%d", o, len));
-                } catch (AssertionError e) {
-                    String r = midstr(S, o, len);
-                    throw e;
-                }
-            }
-        }
-    }
+        assertEquals(midstr(S, 4, 4), "");
+        assertEquals(midstr(S, 4, 3), "");
+        assertEquals(midstr(S, 4, 2), "");
+        assertEquals(midstr(S, 4, 1), "");
+        assertEquals(midstr(S, 4, 0), "");
+        assertEquals(midstr(S, 4, -1), "");
+        assertEquals(midstr(S, 4, -2), "");
+        assertEquals(midstr(S, 4, -3), "");
+        assertEquals(midstr(S, 4, -4), "");
 
-    private static final String S = "012";
+        assertEquals(midstr(S, 3, 4), "");
+        assertEquals(midstr(S, 3, 3), "");
+        assertEquals(midstr(S, 3, 2), "");
+        assertEquals(midstr(S, 3, 1), "");
+        assertEquals(midstr(S, 3, 0), "");
+        assertEquals(midstr(S, 3, -1), "");
+        assertEquals(midstr(S, 3, -2), "");
+        assertEquals(midstr(S, 3, -3), "");
+        assertEquals(midstr(S, 3, -4), "");
+
+        assertEquals(midstr(S, 2, 4), "2");
+        assertEquals(midstr(S, 2, 3), "2");
+        assertEquals(midstr(S, 2, 2), "2");
+        assertEquals(midstr(S, 2, 1), "2");
+        assertEquals(midstr(S, 2, 0), "");
+        assertEquals(midstr(S, 2, -1), "2");
+        assertEquals(midstr(S, 2, -2), "2");
+        assertEquals(midstr(S, 2, -3), "");
+        assertEquals(midstr(S, 2, -4), "");
+
+        assertEquals(midstr(S, 1, 4), "12");
+        assertEquals(midstr(S, 1, 3), "12");
+        assertEquals(midstr(S, 1, 2), "12");
+        assertEquals(midstr(S, 1, 1), "1");
+        assertEquals(midstr(S, 1, 0), "");
+        assertEquals(midstr(S, 1, -1), "12");
+        assertEquals(midstr(S, 1, -2), "1");
+        assertEquals(midstr(S, 1, -3), "");
+        assertEquals(midstr(S, 1, -4), "");
+
+        assertEquals(midstr(S, 0, 4), "012");
+        assertEquals(midstr(S, 0, 3), "012");
+        assertEquals(midstr(S, 0, 2), "01");
+        assertEquals(midstr(S, 0, 1), "0");
+        assertEquals(midstr(S, 0, 0), "");
+        assertEquals(midstr(S, 0, -1), "01");
+        assertEquals(midstr(S, 0, -2), "0");
+        assertEquals(midstr(S, 0, -3), "");
+        assertEquals(midstr(S, 0, -4), "");
+
+        assertEquals(midstr(S, -1, 4), "012");
+        assertEquals(midstr(S, -1, 3), "01");
+        assertEquals(midstr(S, -1, 2), "0");
+        assertEquals(midstr(S, -1, 1), "");
+        assertEquals(midstr(S, -1, 0), "");
+        assertEquals(midstr(S, -1, -1), "0");
+        assertEquals(midstr(S, -1, -2), "");
+        assertEquals(midstr(S, -1, -3), "");
+        assertEquals(midstr(S, -1, -4), "");
+
+        assertEquals(midstr(S, -2, 4), "01");
+        assertEquals(midstr(S, -2, 3), "0");
+        assertEquals(midstr(S, -2, 2), "");
+        assertEquals(midstr(S, -2, 1), "");
+        assertEquals(midstr(S, -2, 0), "");
+        assertEquals(midstr(S, -2, -1), "");
+        assertEquals(midstr(S, -2, -2), "");
+        assertEquals(midstr(S, -2, -3), "");
+        assertEquals(midstr(S, -2, -4), "");
+
+        assertEquals(midstr(S, -3, 4), "0");
+        assertEquals(midstr(S, -3, 3), "");
+        assertEquals(midstr(S, -3, 2), "");
+        assertEquals(midstr(S, -3, 1), "");
+        assertEquals(midstr(S, -3, 0), "");
+        assertEquals(midstr(S, -3, -1), "");
+        assertEquals(midstr(S, -3, -2), "");
+        assertEquals(midstr(S, -3, -3), "");
+        assertEquals(midstr(S, -3, -4), "");
+
+        assertEquals(midstr(S, -4, 4), "");
+        assertEquals(midstr(S, -4, 3), "");
+        assertEquals(midstr(S, -4, 2), "");
+        assertEquals(midstr(S, -4, 1), "");
+        assertEquals(midstr(S, -4, 0), "");
+        assertEquals(midstr(S, -4, -1), "");
+        assertEquals(midstr(S, -4, -2), "");
+        assertEquals(midstr(S, -4, -3), "");
+        assertEquals(midstr(S, -4, -4), "");
+    }
 }
