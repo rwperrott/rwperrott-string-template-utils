@@ -46,92 +46,6 @@ public class STUtils {
 
     }
 
-    /**
-     * A wrapper for a Formatter object.
-     */
-    @SuppressWarnings("UnusedReturnValue")
-    public static final class Fmt implements Appendable {
-        private final Formatter f = new Formatter();
-
-        private Fmt() {
-        }
-
-        public Fmt clear() {
-            clear(sb());
-            return this;
-        }
-
-        private static void clear(StringBuilder sb) {
-            sb.setLength(0);
-        }
-
-        public StringBuilder sb() {
-            return (StringBuilder) f.out();
-        }
-
-        public String concat(Object... a) {
-            final StringBuilder sb = sb();
-            // Catch probable misuse
-            if (sb.length() > 0)
-                throw new IllegalStateException("Not cleared");
-            append(sb, a);
-            return sb.toString();
-        }
-
-        private static void append(StringBuilder sb, Object[] a) {
-            for (Object o : a)
-                sb.append(o);
-        }
-
-        @Override
-        public Fmt append(final CharSequence csq) {
-            sb().append(csq);
-            return this;
-        }
-
-        @Override
-        public Fmt append(final CharSequence csq, final int start, final int end) {
-            sb().append(csq, start, end);
-            return this;
-        }
-
-        public Fmt append(char ch) {
-            sb().append(ch);
-            return this;
-        }
-
-        public Fmt insert(int i, String s) {
-            sb().insert(i, s);
-            return this;
-        }
-
-        public Fmt append(String s) {
-            sb().append(s);
-            return this;
-        }
-
-        public Fmt format(String format, Object... args) {
-            f.format(format, args);
-            return this;
-        }
-
-        /**
-         * Gets string, then sets buffer length to zero.
-         *
-         * @return .
-         */
-        @Override
-        public String toString() {
-            return sb().toString();
-        }
-    }
-    public static final SoftPool<Fmt> FMT_POOL = SoftPool
-            .builder(Fmt::new)
-            .passivator(f -> {
-                f.clear();
-                return true;
-            })
-            .build();
     public static final char QUOTE = '\"';
     public static final char ROUND_START = '(';
     public static final char ROUND_END = ')';
@@ -147,18 +61,18 @@ public class STUtils {
         final STGroupType type;
         // Check contains a template String
         if (STUtils.templateMatcher(source).find()) {
-            return new TypeAndURL(string, null);
+            return new TypeAndURL(STRING, null);
         }
 
         // Must be a URL or a filesystem path
         Path path;
         if (".".equals(source)) {
             path = defaultDir;
-            type = directory;
+            type = DIRECTORY;
         } else {
             type = source.endsWith(GROUP_FILE_EXTENSION)
-                   ? file
-                   : directory;
+                    ? FILE
+                    : DIRECTORY;
             // Try direct conversion to a URL
             try {
                 return new TypeAndURL(type, new URI(source).normalize().toURL());
@@ -177,7 +91,7 @@ public class STUtils {
         if (!exists(path)) {
             throw new FileNotFoundException(path.toString());
         }
-        if (type == file && !isRegularFile(path)) {
+        if (type == FILE && !isRegularFile(path)) {
             throw new IOException(source + " is not a file");
         }
 
@@ -200,7 +114,7 @@ public class STUtils {
         map.forEach((k, v) -> {
             if (k.getClass() != String.class)
                 throw new IllegalArgumentException(format("non-String key %s:%s in %s",
-                                                          k.getClass().getName(), k.toString(), label));
+                                                          k.getClass().getName(), k, label));
             if (checkDepth > 0 && v instanceof Map) {
                 validateAttributes((Map<?, ?>) v, label, checkDepth - 1);
             }
@@ -208,7 +122,7 @@ public class STUtils {
         return (Map<String, V>) map;
     }
 
-    public static void clearAttributes(final @NonNull ST st, Map<String, ?> attributes) {
+    public static void clearAttributes(final @NonNull ST st) {
         removeAttributes(st, st.getAttributes());
     }
 
@@ -242,7 +156,6 @@ public class STUtils {
      * Convert and array of Object to an array of Strings, using toSting1
      *
      * @param a .
-     *
      * @return .
      */
     public static Object[] toStringN(Object... a) {
@@ -255,7 +168,6 @@ public class STUtils {
      * Make up for deficiencies in Objects and Arrays classes, and quote CharSequences.
      *
      * @param o .
-     *
      * @return .
      */
     public static String toString1(Object o) {
@@ -281,13 +193,12 @@ public class STUtils {
                 return Arrays.toString((Object[]) o);
         }
         if (CharSequence.class.isAssignableFrom(eClass))
-            return format("\"%s\"", o.toString());
+            return format("\"%s\"", o);
         return o.toString();
     }
 
     /**
      * @param array a sequence of key, value pairs
-     *
      * @return a LinkedHashMap, to preserve sequence
      */
     public static Map<String, String> toMap(final @NonNull String... array) {
@@ -313,7 +224,6 @@ public class STUtils {
 
     /**
      * @param list a sequence of key, value pairs
-     *
      * @return a LinkedHashMap, to preserve sequence
      */
     public static Map<String, String> toMap(final @NonNull List<String> list) {
@@ -353,14 +263,14 @@ public class STUtils {
         try {
             if (isPlainProperty(s))
                 a.append('.')
-                 .append(s);
+                        .append(s);
             else
                 a.append('.')
-                 .append(STUtils.ROUND_START)
-                 .append(STUtils.QUOTE)
-                 .append(s)
-                 .append(STUtils.QUOTE)
-                 .append(STUtils.ROUND_END);
+                        .append(STUtils.ROUND_START)
+                        .append(STUtils.QUOTE)
+                        .append(s)
+                        .append(STUtils.QUOTE)
+                        .append(STUtils.ROUND_END);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
