@@ -20,6 +20,15 @@ import static java.util.Objects.requireNonNull;
  * @author rwperrott
  */
 public interface MemberInvoker extends Comparable<MemberInvoker> {
+    String CONSTRUCTOR = "constructor";
+    String FIELD = "field";
+    String METHOD = "method";
+    String PARENT = "parent";
+    String TYPE_CONVERTERS = "typeConverters";
+    String VALUE_INDEX = "valueIndex";
+    String VALUE_INDEX_OF = "valueIndexOf";
+
+
     TypeConverter[] typeConverters();
 
     boolean isReturnTypeInstanceOf(Class<?> type);
@@ -75,6 +84,7 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
             return Modifier.isStatic(member.getModifiers());
         }
 
+        @Override
         public final boolean convert(final List<Object> args, int extrasLen) {
             return TypeConverter.convert(args, typeConverters(), extrasLen);
         }
@@ -85,8 +95,11 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
         final Object invoke(final int valueIndex, final Object value, List<Object> srcArgs) throws Throwable {
             final int argsLength = typeConverters().length;
             final Object[] args = new Object[argsLength];
-            for (int i = 0, j = 0; i < argsLength; i++)
-                args[i] = (i == valueIndex) ? value : srcArgs.get(j++);
+            for (int i = 0, j = 0; i < argsLength; i++) {
+                args[i] = (i == valueIndex)
+                        ? value
+                        : srcArgs.get(j++);
+            }
             return methodHandle.invokeWithArguments(args);
         }
 
@@ -96,7 +109,7 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
         }
 
         @Override
-        public boolean equals(final Object o) {
+        public final boolean equals(final Object o) {
             if (this == o) return true;
             if (!(o instanceof MemberInvoker))
                 return false;
@@ -133,7 +146,7 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
         final int valueIndex;
         final TypeConverter[] typeConverters;
 
-        public AbstractForValueType(final Abstract<M> parent, final int valueIndex, final TypeConverter[] typeConverters) {
+        AbstractForValueType(final Abstract<M> parent, final int valueIndex, final TypeConverter[] typeConverters) {
             this.h = Arrays.hashCode(typeConverters);
             this.parent = parent;
             this.valueIndex = valueIndex;
@@ -226,16 +239,16 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
         }
 
         public Object invoke(final Object value, List<Object> args) throws Throwable {
-            return isStatic()
-                   ? methodHandle.invokeExact()
-                   : methodHandle.bindTo(value).invokeExact();
+            return super.isStatic()
+                    ? methodHandle.invokeExact()
+                    : methodHandle.bindTo(value).invokeExact();
         }
 
 
         @Override
         public String toString() {
-            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForField",true);
-            t.add("field", member);
+            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForField", true);
+            t.add(FIELD, member);
             t.complete();
             return t.toString();
         }
@@ -267,7 +280,7 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
 
         public final Object invoke(final Object value, final List<Object> srcArgs) throws Throwable {
             MethodHandle mh = methodHandle;
-            if (!isStatic())
+            if (!super.isStatic())
                 mh = mh.bindTo(value);
             //
             final int argsLength = typeConverters.length;
@@ -281,9 +294,9 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
 
         @Override
         public String toString() {
-            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForMethod",true);
-            t.add("method", member);
-            t.add("typeConverters", typeConverters);
+            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForMethod", true);
+            t.add(METHOD, member);
+            t.add(TYPE_CONVERTERS, typeConverters);
             t.complete();
             return t.toString();
         }
@@ -325,9 +338,9 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
 
         @Override
         public String toString() {
-            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForStaticMethod",true);
-            t.add("method", member);
-            t.add("valueIndexOf",valueIndexOf);
+            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForStaticMethod", true);
+            t.add(METHOD, member);
+            t.add(VALUE_INDEX_OF, valueIndexOf);
             t.complete();
             return t.toString();
         }
@@ -341,10 +354,10 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
 
             @Override
             public String toString() {
-                ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForStaticMethod.ForValueType",true);
-                t.add("parent", parent);
-                t.add("valueIndex",valueIndex);
-                t.add("typeConverters",typeConverters);
+                ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForStaticMethod.ForValueType", true);
+                t.add(PARENT, parent);
+                t.add(VALUE_INDEX, valueIndex);
+                t.add(TYPE_CONVERTERS, typeConverters);
                 t.complete();
                 return t.toString();
             }
@@ -359,10 +372,10 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
         final TypeIndexMap valueIndexOf;
 
         private ForConstructor(final Class<?> cls,
-                                final Constructor<?> constructor,
-                                final MethodHandle methodHandle,
-                                final TypeConverter[] typeConverters,
-                                final TypeIndexMap valueIndexOf) {
+                               final Constructor<?> constructor,
+                               final MethodHandle methodHandle,
+                               final TypeConverter[] typeConverters,
+                               final TypeIndexMap valueIndexOf) {
             super(cls, constructor, methodHandle, typeConverters);
             this.typeConverters = requireNonNull(typeConverters, "typeAdapters");
             this.valueIndexOf = requireNonNull(valueIndexOf, "typeIndexOf");
@@ -381,7 +394,7 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
 
         public final Object invoke(final Object value, final List<Object> srcArgs) throws Throwable {
             MethodHandle mh = methodHandle;
-            if (!isStatic())
+            if (!super.isStatic())
                 mh = mh.bindTo(value);
             //
             final int argsLength = typeConverters.length;
@@ -404,18 +417,16 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
             final int fromN = from.length;
             final TypeConverter[] to = new TypeConverter[fromN - 1];
             for (int fromI = 0, toI = 0; fromI < fromN; fromI++) {
-                if (fromI == valueIndex)
-                    continue;
-                to[toI++] = from[fromI];
+                if (fromI != valueIndex) to[toI++] = from[fromI];
             }
             return new ForValueType(this, valueIndex, to);
         }
 
         @Override
         public String toString() {
-            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForConstructor",true);
-            t.add("constructor", member);
-            t.add("valueIndexOf",valueIndexOf);
+            ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForConstructor", true);
+            t.add(CONSTRUCTOR, member);
+            t.add(VALUE_INDEX_OF, valueIndexOf);
             t.complete();
             return t.toString();
         }
@@ -429,10 +440,10 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
 
             @Override
             public String toString() {
-                ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForConstructor.ForValueType",true);
-                t.add("parent", parent);
-                t.add("valueIndex",valueIndex);
-                t.add("typeConverters",typeConverters);
+                ToStringBuilder t = new ToStringBuilder("MemberInvoker.ForConstructor.ForValueType", true);
+                t.add(PARENT, parent);
+                t.add(VALUE_INDEX, valueIndex);
+                t.add(TYPE_CONVERTERS, typeConverters);
                 t.complete();
                 return t.toString();
             }
@@ -461,10 +472,10 @@ public interface MemberInvoker extends Comparable<MemberInvoker> {
     }
 
     static MemberInvoker forConstructor(final Class<?> boxedReturnType,
-                                         final Constructor<?> member,
-                                         final MethodHandle methodHandle,
-                                         final TypeConverter[] typeAdapters,
-                                         final TypeIndexMap valueIndexOf) {
+                                        final Constructor<?> member,
+                                        final MethodHandle methodHandle,
+                                        final TypeConverter[] typeAdapters,
+                                        final TypeIndexMap valueIndexOf) {
         return new ForConstructor(boxedReturnType, member, methodHandle, typeAdapters, valueIndexOf);
     }
 }
