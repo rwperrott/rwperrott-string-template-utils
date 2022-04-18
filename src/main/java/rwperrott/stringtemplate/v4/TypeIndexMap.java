@@ -26,16 +26,17 @@ final class TypeIndexMap extends Object2IntOpenHashMap<Class<?>> {
         throw new UnsupportedOperationException();
     }
 
+    private int computeInt0(Class<?> key) {
+        key = box(key);
+        for (final Entry<Class<?>> e : object2IntEntrySet())
+            if (ClassMembers.isAssignableFrom(e.getKey(), key))
+                return e.getIntValue(); // Cache hit
+        return -1;
+    }
+
     @Override
     public int getInt(@NonNull final Object key) {
-        final Class<?> aClass = (key instanceof Class) ? (Class<?>) key : key.getClass();
-        return super.computeIntIfAbsent(aClass, from -> {
-            from = box(from);
-            for (final Entry<Class<?>> e : object2IntEntrySet())
-                if (ClassMembers.isAssignableFrom(e.getKey(), from))
-                    return e.getIntValue(); // Cache hit
-            return -1;
-        });
+        return super.computeIfAbsent(key instanceof Class ? (Class<?>) key : key.getClass(), this::computeInt0);
     }
 
     @Override
@@ -43,6 +44,7 @@ final class TypeIndexMap extends Object2IntOpenHashMap<Class<?>> {
         return super.putIfAbsent(box(aClass), v);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public int computeIntIfAbsent(final Class<?> aClass, final ToIntFunction<? super Class<?>> mappingFunction) {
         throw new UnsupportedOperationException();
