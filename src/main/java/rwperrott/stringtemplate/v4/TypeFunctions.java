@@ -54,7 +54,8 @@ public final class TypeFunctions {
 
         /**
          * Not really public, only to allow injection by ClassMembers.
-         * @param unique a temporary Set to used to stop overwrite of existing entries in internal map.
+         *
+         * @param unique           a temporary Set to used to stop overwrite of existing entries in internal map.
          * @param instanceInvokers the map to scan
          */
         @Override
@@ -69,8 +70,8 @@ public final class TypeFunctions {
                     v.forEach(to);
                 } else {
                     v.stream()
-                     .filter(mi -> !unique.contains(mi))
-                     .forEach(unique::add);
+                            .filter(mi -> !unique.contains(mi))
+                            .forEach(unique::add);
                     final int newSize = unique.size();
                     if (newSize != toSize) {
                         to.clear();
@@ -84,7 +85,8 @@ public final class TypeFunctions {
 
         /**
          * Not really public, only to allow injection by ClassMembers.
-         * @param unique a temporary Set to used to stop overwrite of existing entries in internal map.
+         *
+         * @param unique         a temporary Set to used to stop overwrite of existing entries in internal map.
          * @param staticInvokers the map to scan
          */
         @Override
@@ -100,8 +102,8 @@ public final class TypeFunctions {
                 } else {
                     to.forEach(unique::add);
                     v.functionStream(valueType)
-                     .filter(mi -> !unique.contains(mi))
-                     .forEach(to);
+                            .filter(mi -> !unique.contains(mi))
+                            .forEach(to);
                     final int newSize = unique.size();
                     if (newSize != toSize) {
                         to.clear();
@@ -147,7 +149,8 @@ public final class TypeFunctions {
         if (null != superType) {
             superInstance = get0(superType);
         }
-        FOR_TYPE.put(valueType, byName = new ByName(valueType, superInstance));
+        byName = new ByName(valueType, superInstance);
+        FOR_TYPE.put(valueType, byName);
         return byName;
     }
 

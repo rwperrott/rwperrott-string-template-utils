@@ -26,7 +26,7 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
     private final Class<?> type;
     private final UnaryOperator<Object> converter;
 
-    private TypeConverter(@NonNull final int compareValue,
+    private TypeConverter(final int compareValue,
                           @NonNull final Class<?> type,
                           @NonNull final UnaryOperator<Object> converter) {
         this.compareValue = compareValue;
@@ -54,7 +54,7 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
 
     @Override
     public String toString() {
-        return "TypeConverter{type="+type+"}";
+        return "TypeConverter{type=" + type + "}";
     }
 
     /**
@@ -274,7 +274,7 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
                                         @NonNull final UnaryOperator<Object> converter) {
         converterMap.compute(type, (from, old) ->
                 (null != old && old.converter != UNSUPPORTED)
-                ? old : new TypeConverter(converterMap.size(), type, converter));
+                        ? old : new TypeConverter(converterMap.size(), type, converter));
     }
 
     static TypeConverter toTypeConverter(@NonNull Class<?> parameterType) {
@@ -307,6 +307,8 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
     }
 
     /**
+     * Converts type to boxed type, when a primitive type.
+     * <p/>
      * Also used by ClassMembers and TypeIndexMap
      */
     static Class<?> box(Class<?> cls) {
@@ -317,7 +319,7 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
      * Used by ClassMembers constructor to generate TypeConverter array and populate valueIndexOf map.
      *
      * @param parameterTypes an array of parameters to index
-     * @param valueIndexOf a map to accept type indexes
+     * @param valueIndexOf   a map to accept type indexes
      * @return the resulting TypeConverter array for all of the parameter types.
      */
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
@@ -340,8 +342,9 @@ public final class TypeConverter implements Comparable<TypeConverter>, UnaryOper
 
     /**
      * Attempts to convert args to correct types for candidate method.
-     *
+     * <p>
      * Used by MemberInvoker::convert
+     *
      * @return true if all conversions successful.
      */
     static boolean convert(@NonNull final List<Object> args,
