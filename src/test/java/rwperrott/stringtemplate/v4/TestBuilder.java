@@ -1,5 +1,6 @@
 package rwperrott.stringtemplate.v4;
 
+import lombok.NonNull;
 import org.testng.Assert;
 
 /**
@@ -19,7 +20,7 @@ class Test extends ValueTemplateRenderer<Test> {
     }
 
     @Override
-    public Test v(final Object value) {
+    public Test v(final @NonNull Object value) {
         try {
             return super.v(value);
         } catch (Exception e) {
