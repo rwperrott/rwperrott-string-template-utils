@@ -95,12 +95,12 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
 
         final String templateText;
         {
-            final Fmt t = FMT_POOL.get();
+            final Fmt t = Fmt.POOL.get();
             try {
                 appendTemplateSignature(t, TEMPLATE_NAME, VALUE_NAME);
                 t.append("<%<");
                 // Not final, to allow reference swapping
-                Fmt b = FMT_POOL.get(), other = null;
+                Fmt b = Fmt.POOL.get(), other = null;
                 try {
                     b.append(VALUE_NAME);
                     //
@@ -110,7 +110,7 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
                     if (!wrappers.isEmpty()) {
                         // Wrap b, by swapping b and other, to avoid pointlessly creating a String objects.
                         for (String wrapper : wrappers) {
-                            other = FMT_POOL.apply(other);
+                            other = Fmt.POOL.apply(other);
                             other.format(wrapper, b);
                             final Fmt priorB = b;
                             b = other;
@@ -119,16 +119,15 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
                     }
                     // Add start and end of template.
                     templateText = t
-                            .sb()
                             .append(b)
                             .append(">%>")
                             .toString();
                 } finally {
-                    FMT_POOL.accept(b);
-                    FMT_POOL.accept(other);
+                    Fmt.POOL.accept(b);
+                    Fmt.POOL.accept(other);
                 }
             } finally {
-                FMT_POOL.accept(t);
+                Fmt.POOL.accept(t);
             }
         }
 
@@ -150,7 +149,7 @@ class ValueTemplateRenderer<R extends ValueTemplateRenderer<R>> implements STErr
             failed = true;
         }
         if (failed) {
-            throw new STException(FMT_POOL.use(fmt -> fmt.concat("failed to render template: ", templateText)), ex);
+            throw new STException(Fmt.POOL.use(fmt -> fmt.concat("failed to render template: ", templateText)), ex);
         }
         return r;
     }
