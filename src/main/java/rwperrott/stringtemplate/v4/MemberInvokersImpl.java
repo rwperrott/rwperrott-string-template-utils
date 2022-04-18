@@ -1,10 +1,13 @@
 package rwperrott.stringtemplate.v4;
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
+import lombok.NonNull;
 
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+
+import static java.lang.String.format;
 
 /**
  * Only for package use
@@ -43,7 +46,7 @@ final class MemberInvokersImpl implements MemberInvokers, Consumer<MemberInvoker
     }
 
     @Override
-    public Iterator<MemberInvoker> iterator() {
+    public @NonNull Iterator<MemberInvoker> iterator() {
         return list.iterator();
     }
 
@@ -73,7 +76,7 @@ final class MemberInvokersImpl implements MemberInvokers, Consumer<MemberInvoker
 
     /**
      * Get all member invokers with a parameter matching valueType.
-     *
+     * <p>
      * Only supported by MemberInvoker.WithValueType<br/>
      * i.e. MemberInvoker.ForStaticMethod and MemberInvoker.ForConstructor
      */
@@ -90,33 +93,35 @@ final class MemberInvokersImpl implements MemberInvokers, Consumer<MemberInvoker
 
     private void index0() {
         if (list.isEmpty())
-            throw new IllegalArgumentException("empty");
+            throw new IllegalArgumentException(format("\"%s\" list is empty", name));
         //
         final int size = list.size();
-        final int maxTypeConverterCount = list.get(size - 1).typeConverterCount();
-        final int[] subIndex_ = IntArrays.ensureCapacity(subIndex, (1 + maxTypeConverterCount) << 1);
+        final int maxTypeConverterCount0 = list.get(size - 1).typeConverterCount();
+        final int[] subIndex0 = IntArrays.ensureCapacity(subIndex, (1 + maxTypeConverterCount0) << 1);
         Arrays.fill(subIndex, -1);
-        int iSubIndex = 0, iSubIndexP = -1, i = 0;
+        int iSubIndex = 0;
+        int iSubIndexP = -1;
+        int i = 0;
         while (i < size) {
             final MemberInvoker mi = list.get(i);
             iSubIndex = mi.typeConverterCount() << 1;
             if (iSubIndex != iSubIndexP) {
                 if (iSubIndexP != -1)
-                    subIndex_[iSubIndexP + 1] = i;
+                    subIndex0[iSubIndexP + 1] = i;
                 iSubIndexP = iSubIndex;
             }
-            subIndex_[iSubIndex] = i++;
+            subIndex0[iSubIndex] = i++;
         }
-        subIndex_[iSubIndex + 1] = i;
+        subIndex0[iSubIndex + 1] = i;
 
-        this.subIndex = subIndex_;
-        this.maxTypeConverterCount = maxTypeConverterCount;
+        this.subIndex = subIndex0;
+        this.maxTypeConverterCount = maxTypeConverterCount0;
     }
 
     @Override
     public synchronized String toString() {
-        ToStringBuilder t = new ToStringBuilder("MemberInvokersImpl",true);
-        t.add("name",name);
+        ToStringBuilder t = new ToStringBuilder("MemberInvokersImpl", true);
+        t.add("name", name);
         t.add("maxTypeConverterCount", maxTypeConverterCount);
         t.add("subIndex", subIndex);
         t.add("list", list);
@@ -154,8 +159,8 @@ final class MemberInvokersImpl implements MemberInvokers, Consumer<MemberInvoker
         while (i < n) {
             MemberInvoker mi = list.get(i++);
             if (mi.isAccessible(onlyPublic) &&
-                mi.isReturnTypeInstanceOf(returnType) &&
-                mi.convert(args, extrasLen))
+                    mi.isReturnTypeInstanceOf(returnType) &&
+                    mi.convert(args, extrasLen))
                 return mi;
         }
         return null;
