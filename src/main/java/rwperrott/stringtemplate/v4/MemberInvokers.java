@@ -7,35 +7,35 @@ import java.util.List;
  *
  * @author rwperrott
  */
-public interface MemberInvokers {
-    /**
-     * Used by AbstractInvokeAdaptor
-     */
-    int maxTypeConverterCount();
-
-    default MemberInvoker find(final boolean onlyPublic,
-                               final Class<?> returnType,
-                               final List<Object> args) {
-        return find(onlyPublic, returnType, args, 0);
+interface MemberInvokers {
+  MemberInvokers NONE = new MemberInvokers() {
+    @Override
+    public int maxTypeConverterCount() {
+      return 0;
     }
 
-    /**
-     * Used by AbstractInvokeAdaptor and StringInvokeRenderer
-     */
-    MemberInvoker find(final boolean onlyPublic,
-                       final Class<?> returnType,
-                       final List<Object> args,
-                       final int extrasLen);
+    @Override
+    public MemberInvoker find(final boolean onlyPublic, final Class<?> returnType, final List<Object> args, final int extrasLen) {
+      return null;
+    }
+  };
 
-    MemberInvokers NONE = new MemberInvokers() {
-        @Override
-        public int maxTypeConverterCount() {
-            return 0;
-        }
+  /**
+   * Used by AbstractInvokeAdaptor
+   */
+  int maxTypeConverterCount();
 
-        @Override
-        public MemberInvoker find(final boolean onlyPublic, final Class<?> returnType, final List<Object> args, final int extrasLen) {
-            return null;
-        }
-    };
+  default MemberInvoker find(final boolean onlyPublic,
+                             final Class<?> returnType,
+                             final List<Object> args) {
+    return find(onlyPublic, returnType, args, 0);
+  }
+
+  /**
+   * Used by AbstractInvokeAdaptor and StringInvokeRenderer
+   */
+  MemberInvoker find(final boolean onlyPublic,
+                     final Class<?> returnType,
+                     final List<Object> args,
+                     final int extrasLen);
 }
