@@ -10,27 +10,26 @@ import java.util.concurrent.ExecutionException;
  * @author rwperrott
  */
 public final class STExceptions {
-    private STExceptions() {
-    }
+  /**
+   * Fixes the annoying bad manners of anything "throwing" Throwable (e.g. reflect and invoke)!
+   * <br/>
+   * Throws all Errors and returns everything else as an Exception.
+   * <br/>
+   * Runtime Exceptions
+   */
+  public static Exception toException(Throwable t) {
+    if (t instanceof Error)
+      throw (Error) t; // Best to rethrow Errors, because maybe fatal.
+    if (t instanceof Exception)
+      return (Exception) t;
+    // Just-in-case a not Error and not Exception sub-class of Throwable ever gets thrown!
+    return new ExecutionException(t);
+  }
 
-    public static STNoSuchPropertyException noSuchPropertyInClass(Class<?> cls, String propertyName, Throwable cause) {
-        throw new STNoSuchPropertyException(toException(cause), null, propertyName + " in " + cls.getName());
-    }
+  public static STNoSuchPropertyException noSuchPropertyInObject(Object o, String propertyName, Throwable cause) {
+    throw new STNoSuchPropertyException(toException(cause), o, propertyName);
+  }
 
-    /**
-     * Deals with the dogmatic idiocy of anything throwing Throwable (e.g. reflect and invoke). throw all Errors and
-     * return everything else as an Exception.
-     */
-    public static Exception toException(Throwable t) {
-        if (t instanceof Error)
-            throw (Error) t; // Should only be caught when you really, really have to!
-        if (t instanceof Exception)
-            return (Exception) t;
-        // Just-in-case some idiot throws a non-Error and no-Exception Throwable, which sadly is possible!
-        return new ExecutionException(t); // Preferable to ambiguous RuntimeException
-    }
-
-    public static STNoSuchPropertyException noSuchPropertyInObject(Object o, String propertyName, Throwable cause) {
-        throw new STNoSuchPropertyException(toException(cause), o, propertyName);
-    }
+  private STExceptions() {
+  }
 }
