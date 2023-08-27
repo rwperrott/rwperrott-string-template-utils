@@ -12,166 +12,188 @@ import java.util.Locale;
 
 /**
  * Sub-string functions, with wrapping of negative offset and len values.
- * <p>
- * Default registers methods from String, org.apache.commons.lang3.StringUtils,
- * <p>
- * I don't care about the StringTemplate developer's purity arguments, we need pragmatism like this, to make
- * StringTemplate a lot more usable.
+ * <br/>
+ * Default register methods from String, org.apache.commons.lang3.StringUtils,
  *
  * @author rwperrott
  */
 @SuppressWarnings({"unused", "SpellCheckingInspection"})
 public final class StringFunctions {
-    private StringFunctions() {
-    }
+  private static final String EMPTY = "";
 
-    public static void registerAdapterFunctions() {
-        registerRendererFunctions();
+  public static void registerAdapterFunctions() {
+    registerRendererFunctions();
 
-        // Functions returning other type objects.
-        TypeFunctions.registerFunctionClasses(String.class,
-                                              Long.class,
-                                              Double.class,
-                                              Byte.class,
-                                              Short.class,
-                                              Integer.class,
-                                              Float.class
-        );
-    }
+    // Functions returning other type objects.
+    TypeFunctions.registerFunctionClasses(String.class,
+                                          Long.class,
+                                          Double.class,
+                                          Byte.class,
+                                          Short.class,
+                                          Integer.class,
+                                          Float.class
+    );
+  }
 
-    /**
-     * Function
-     */
-    public static void registerRendererFunctions() {
-        TypeFunctions.registerFunctionClasses(String.class,
-                                              StringFunctions.class,
-                                              // String Utils first, because word based routines are probably less useful.
-                                              StringUtils.class,
-                                              WordUtils.class,
-                                              StringEscapeUtils.class
-        );
-    }
+  /**
+   * Function
+   */
+  public static void registerRendererFunctions() {
+    TypeFunctions.registerFunctionClasses(String.class,
+                                          StringFunctions.class,
+                                          // String Utils first, because word based routines probably less useful.
+                                          StringUtils.class,
+                                          WordUtils.class,
+                                          StringEscapeUtils.class
+    );
+  }
 
-    /**
-     * Return len character String from the start of v.
-     *
-     * @param value src
-     * @param len   if less than zero, v length added
-     * @return "" or left part of src starting with first character
-     */
-    public static String leftstr(@NonNull String value, int len) {
-        final int n = value.length();
-        if (len < 0)
-            len += n;
-        else if (len >= n)
-            return value;
-        return len <= 0 ? "" : value.substring(0, len);
-    }
+  /**
+   * Returns Left most characters.
+   *
+   * @param value not null.
+   * @param len   if less than zero, src length added e.g., effective len=3 for len=-1 and value length=4.
+   * @return empty string, left part of value, or whole value.
+   */
+  public static String leftstr(@NonNull String value, int len) {
+    final int n = value.length();
+    if (len < 0)
+      len += n;
+    else if (len > n)
+      len = n;
+    return len <= 0 ? EMPTY : value.substring(0, len);
+  }
 
-    /**
-     * Return len character String from the end of v.
-     *
-     * @param value src
-     * @param len   if less than zero, src length added
-     * @return "" or right part of src ending with last character.
-     */
-    public static String rightstr(@NonNull String value, int len) {
-        final int n = value.length();
-        if (len < 0)
-            len += n;
-        else if (len >= n)
-            return value;
-        return len <= 0 ? "" : value.substring(n - len, n);
-    }
+  /**
+   * Returns Right most characters.
+   *
+   * @param value not null.
+   * @param len   if less than zero, src length added e.g., effective len=3 for len=-1 and value length=4.
+   * @return empty string, right part of value, or whole value.
+   */
+  public static String rightstr(@NonNull String value, int len) {
+    final int n = value.length();
+    if (len < 0)
+      len += n;
+    else if (len > n)
+      len = n;
+    return len <= 0 ? EMPTY : value.substring(n - len);
+  }
 
-    /**
-     * @param value  src
-     * @param offset can be negative
-     * @param len    if less than zero, src length added
-     * @return result of substr(offset, offset + len)
-     */
-    public static String midstr(@NonNull String value, int offset, int len) {
-        if (len < 0)
-            len = value.length() - len;
-        return substr(value, offset, offset + len);
+  /**
+   * @param value  not null.
+   * @param offset negative value allowed.
+   * @param len    if less than zero, value length added e.g., effective len=3 for len=-1 and value length=4.
+   * @return result empty string, part of value, or whole value.
+   */
+  public static String midstr(@NonNull String value, int offset, int len) {
+    final int n = value.length();
+    if (len < 0) {
+      len += n;
     }
+    int end = offset + len;
+    if (end > n) {
+      end = n;
+    }
+    if (offset < 0) { // Only fix here, because end calculate from parameter value.
+      offset = 0;
+    }
+    return offset >= end ? EMPTY : value.substring(offset, end);
+  }
 
-    /**
-     * @param value src
-     * @param start if negative set to 0
-     * @param end   if negative "" returned, if more than src length, reduced to src length
-     * @return "" or part of src
-     */
-    public static String substr(@NonNull String value, int start, int end) {
-        if (start < 0)
-            start = 0;
-        final int n = value.length();
-        if (end > n)
-            end = n;
-        return end <= start ? "" : value.substring(start, end);
+  /**
+   * @param value not null.
+   * @param start if negative set to 0.
+   * @return empty string, right part of value, or whole value.
+   */
+  public static String substr(@NonNull String value, int start) {
+    if (start < 0) {
+      start = 0;
     }
+    return start >= value.length() ? EMPTY : value.substring(start);
+  }
 
-    /**
-     * Calls StringUtils::capitalize.
-     * <p>
-     * Not done via alias to avoid clash with
-     */
-    public static String cap(String value) {
-        return StringUtils.capitalize(value);
+  /**
+   * @param value not null.
+   * @param start if negative set to 0.
+   * @param end   if more than value length, reduced to value length.
+   * @return empty string, part of value, or whole value.
+   */
+  public static String substr(@NonNull String value, int start, int end) {
+    final int n = value.length();
+    if (end > n) {
+      end = n;
     }
+    if (start < 0) {
+      start = 0;
+    }
+    return end <= start ? EMPTY : value.substring(start, end);
+  }
 
-    /**
-     * Calls URLEncoder.encode(v, "UTF-8")
-     */
-    public static String escapeXML(@NonNull String value) {
-        try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException ex) {
-            throw new InternalError(ex);
-        }
-    }
+  /**
+   * Calls StringUtils::capitalize.
+   * <br/>
+   * Provided here to ensure write class method called.
+   */
+  public static String stringCapitalize(@NonNull String value) {
+    return StringUtils.capitalize(value);
+  }
 
-    /**
-     * Calls original StringRenderer::escapeHTML method, even if dubious.
-     */
-    public static String escapeHTML(String value) {
-        return StringRenderer.escapeHTML(value);
-    }
+  /**
+   * Calls WordUtils::capitalize.
+   * <br/>
+   * Provided here to ensure write class method called.
+   */
+  public static String wordCapitalize(@NonNull String value) {
+    return WordUtils.capitalize(value);
+  }
 
-    /**
-     * Calls String::toLowerCase
-     */
-    public static String lower(@NonNull String value) {
-        return value.toLowerCase();
+  /**
+   * Calls URLEncoder.encode(v, "UTF-8")
+   */
+  public static String escapeXML(@NonNull String value) {
+    try {
+      return URLEncoder.encode(value, "UTF-8");
+    } catch (UnsupportedEncodingException ex) {
+      throw new InternalError(ex);
     }
+  }
 
-    /**
-     * Calls String::toLowerCase
-     */
-    public static String lower(@NonNull String value, Locale locale) {
-        return value.toLowerCase(locale);
-    }
+  /**
+   * Calls original StringRenderer::escapeHTML method, even if dubious.
+   */
+  public static String escapeHTML(@NonNull String value) {
+    return StringRenderer.escapeHTML(value);
+  }
 
-    /**
-     * Calls String::toUpperCase
-     */
-    public static String upper(@NonNull String value) {
-        return value.toUpperCase();
-    }
+  /**
+   * Calls String::toLowerCase
+   */
+  public static String lower(@NonNull String value) {
+    return value.toLowerCase();
+  }
 
-    /**
-     * Calls String::toUpperCase
-     */
-    public static String upper(@NonNull String value, Locale locale) {
-        return value.toUpperCase(locale);
-    }
+  /**
+   * Calls String::toLowerCase
+   */
+  public static String lower(@NonNull String value, Locale locale) {
+    return value.toLowerCase(locale);
+  }
 
-    /**
-     * Calls WordUtils::capitalize to unmask it behind StringUtils::capitalize
-     * <p>
-     * Wouldn't be needed if the method naming had a "word" prefix, idiots!
-     */
-    public static String wordCapitalize(String value) {
-        return WordUtils.capitalize(value);
-    }
+  /**
+   * Calls String::toUpperCase
+   */
+  public static String upper(@NonNull String value) {
+    return value.toUpperCase();
+  }
+
+  /**
+   * Calls String::toUpperCase
+   */
+  public static String upper(@NonNull String value, Locale locale) {
+    return value.toUpperCase(locale);
+  }
+
+  private StringFunctions() {
+  }
 }
