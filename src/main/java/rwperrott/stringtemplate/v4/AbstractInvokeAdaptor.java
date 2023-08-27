@@ -10,179 +10,213 @@ import org.stringtemplate.v4.misc.STNoSuchPropertyException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.function.UnaryOperator;
 
 /**
- * This provides most/all the functionality to create powerful ModelAdapters which can use an objects fields
- * and make parameterised use of it's instance/static methods, plus static methods in any other registered class.
- * <p>
- * Uses unreflected and cached MethodHandles to invoke Field getters and Methods, which is a lot faster than the
+ * Provides most/all the functionality to create powerful ModelAdapters. These can use an object's fields
+ * and use parameterised instance/static methods, plus static methods in any other registered class.
+ * <br/>
+ * Uses cached unreflected MethodHandles to invoke Field getters and Methods, without the
  * redundant Security costs of calling invoke on Field or Method Member objects.
  *
- * @param <T> type to be adapted
+ * @param <T> type adapted
  * @author rwperrott
  */
-public class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
-    private final boolean onlyPublic;
+public abstract class AbstractInvokeAdaptor<T> implements ModelAdaptor<T> {
 
-    protected AbstractInvokeAdaptor(final boolean onlyPublic) {
-        this.onlyPublic = onlyPublic;
-    }
+  /**
+   * Calls apply(property) on ArgsAdaptor.
+   */
+  private static final ModelAdaptor<ArgsAdaptor> ARGS_ADAPTER_MODEL_ADAPTER =
+    (interpreter, self, model, property, propertyName) -> model.apply(property);
 
-    @Override
-    public final Object getProperty(Interpreter interp, ST self, T model, Object property, String propertyName)
-            throws STNoSuchPropertyException {
-        if (model == null)
-            throw new NullPointerException("o");
+  private static void registerArgsAdapterModelAdapter(final ST self) {
+    // This has to be checked every damned time, because maybe a new STGroup,
+    // so, it can't be cached!
+    final STGroup stg = self.groupThatCreatedThisInstance;
+    if (ARGS_ADAPTER_MODEL_ADAPTER != stg.getModelAdaptor(ArgsAdaptor.class))
+      stg.registerModelAdaptor(ArgsAdaptor.class, ARGS_ADAPTER_MODEL_ADAPTER);
+  }
+  private final boolean onlyPublic;
 
-        final Class<?> cls = model.getClass();
-        if (property == null)
-            throw STExceptions.noSuchPropertyInClass(cls, propertyName, null);
+  protected AbstractInvokeAdaptor(final boolean onlyPublic) {
+    this.onlyPublic = onlyPublic;
+  }
 
-        propertyName = toAlias(propertyName);
+  /**
+   *
+   * @return result, or ArgsAdaptor for its own ModelAdapter.
+   * @throws NullPointerException when cls is null.
+   * @throws STNoSuchPropertyException when can't find property in cls.
+   */
+  @Override
+  public final Object getProperty(final Interpreter interpreter,
+                                  final ST self,
+                                  final T model,
+                                  final Object property,
+                                  final String propertyName)
+    throws STNoSuchPropertyException {
+    Objects.requireNonNull(model, "o");
 
-        try {
-            final MemberInvokers mis = TypeFunctions.get(cls, propertyName);
-            if (mis.maxTypeConverterCount() == 0) {
-                final List<Object> args = Collections.emptyList();
-                final MemberInvoker invoker = mis.find(onlyPublic, Object.class, args);
-                if (null == invoker) {
-                    TypeFunctions.get(cls, propertyName);
-                    throw new IllegalArgumentException("No matching field, method, or static method found");
-                }
-                return invoker.invoke(model, args);
-            }
+    // Set here just-in-case toAlias(propertyName) fails.
+    String alias = propertyName;
 
-            final ArgsAdaptor r = new ArgsAdaptor(interp, self, model, propertyName, onlyPublic, Object.class, mis);
-
-            // Ensure that COMPOSITE_ADAPTER is registered to handle ArgsAdaptor objects.
-            final STGroup stg = self.groupThatCreatedThisInstance;
-            if (COMPOSITE_ADAPTER != stg.getModelAdaptor(ArgsAdaptor.class))
-                stg.registerModelAdaptor(ArgsAdaptor.class, COMPOSITE_ADAPTER);
-
-            return r;
-        } catch (Throwable t) {
-            throw STExceptions.noSuchPropertyInObject(model, propertyName, t);
+    // Provided by sub-class
+    try {
+      final Class<?> cls = model.getClass();
+      if (null == cls)
+        throw new ClassNotFoundException();
+      alias = toAlias(propertyName);
+      if (null == alias)
+        alias = propertyName;
+      final MemberInvokers mis = TypeFunctions.get(cls, alias);
+      if (mis.maxTypeConverterCount() == 0) {
+        // A property, or a method with no parameters.
+        final List<Object> args = Collections.emptyList();
+        final MemberInvoker invoker = mis.find(onlyPublic, Object.class, args);
+        if (null == invoker) {
+          TypeFunctions.get(cls, alias);
+          throw new IllegalArgumentException("No matching field, method, or static method found");
         }
-    }
+        return invoker.invoke(model, args);
+      }
 
-    protected String toAlias(String name) {
-        return name;
+      registerArgsAdapterModelAdapter(self);
+
+      // Wraps model in an ArgsAdapter, which will do chained property parsing, via COMPOSITE_MODEL_ADAPTER.
+      return new ArgsAdaptor(interpreter, self, model, alias, onlyPublic, Object.class, mis);
+    } catch (Throwable t) {
+        throw STExceptions.noSuchPropertyInObject(model, propertyName.equals(alias)
+                                                         ? propertyName : propertyName + "/" + alias, t);
+    }
+  }
+
+  /**
+   * @param name
+   * @return null or an alias name
+   */
+  protected String toAlias(String name) {
+    return null;
+  }
+
+  /**
+   * Only created if memberInvokers.maxTypeConverterCount() more than zero.
+   * <br/>
+   * Carries Interpreter and ST, so can resolve excess properties, via requested ModelAdapter.
+   */
+  private static final class ArgsAdaptor implements UnaryOperator<Object> {
+    /**
+     * Called by `invoke` to build STExceptions.noSuchPropertyInObject `property` String.
+     * @param i start index in args
+     * @param n end index in args
+     */
+    private static String join(final Object result,
+                               final List<Object> args, int i, final int n) {
+      final StringJoiner sj = new StringJoiner(".");
+      add(sj, result);
+      while (i < n)
+        add(sj, args.get(i++));
+      return sj.toString();
     }
 
     /**
-     * Only created if memberInvokers.maxTypeConverterCount() more than zero.
-     * <p>
-     * Carries Interpreter and ST, so can resolve excess properties, via requested ModelAdapter.
+     * Called by `join` to add a value as a String.
      */
-    private static final class ArgsAdaptor implements UnaryOperator<Object> {
-        private final Interpreter interp;
-        private final ST self;
-        private final boolean onlyPublic;
-        private final Class<?> returnType;
-        private final Object value;
-        private final String propertyName;
-        private final MemberInvokers memberInvokers;
-        private final ArrayList<Object> args = new ArrayList<>();
-        /**
-         * Saved, so can be invoke last
-         */
-        private MemberInvoker latestMatchingInvoker;
-
-        @SuppressWarnings("SameParameterValue")
-        private ArgsAdaptor(final Interpreter interp,
-                            final ST self,
-                            final Object value,
-                            final String propertyName,
-                            final boolean onlyPublic,
-                            final Class<?> returnType,
-                            final MemberInvokers memberInvokers) {
-            this.interp = interp;
-            this.self = self;
-            this.onlyPublic = onlyPublic;
-            this.returnType = returnType;
-            this.value = value;
-            this.propertyName = propertyName;
-            this.memberInvokers = memberInvokers;
-
-            // Allow for 0..n args methods
-            final MemberInvoker mi = memberInvokers.find(onlyPublic, returnType, args);
-            if (null != mi)
-                latestMatchingInvoker = mi; // The latest best match
-        }
-
-        @Override
-        public Object apply(final @NonNull Object o) {
-            args.add(o);
-            final MemberInvoker mi = memberInvokers.find(onlyPublic, returnType, args);
-            if (null != mi)
-                latestMatchingInvoker = mi;
-            return args.size() < memberInvokers.maxTypeConverterCount()
-                    ? this
-                    : invoke(); // No matches after this, so use latestMatchingInvoker
-        }
-
-        // Called by apply or toString.
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        private Object invoke() {
-            int n = args.size();
-            if (null == latestMatchingInvoker)
-                throw STExceptions.noSuchPropertyInObject(value, join(propertyName, args, 0, n),
-                                                          new IllegalArgumentException("No matching member found"));
-            Object result = null;
-            int i = 0;
-            try {
-                // Some of the properties found the longest match method, so can resolve model and some properties to an object result.
-                result = latestMatchingInvoker.invoke(value, args);
-
-                // For each excess property:
-                //    call getModelAdapter and getProperty, to part/fully resolving property.
-                // Part resolved properties can be ArgsAdaptor instances.
-                final STGroup stg = self.groupThatCreatedThisInstance;
-                i = latestMatchingInvoker.typeConverterCount();
-                while (i < n) {
-                    final Object arg = args.get(i++);
-                    final ModelAdaptor ma = stg.getModelAdaptor(arg.getClass()); // Assume never can be null
-                    result = ma.getProperty(interp, self, result, arg, arg.toString());
-                }
-                return result;
-            } catch (Throwable t) { // Catch failure of latestMatchingInvoker.invoke or later failure.
-                throw STExceptions.noSuchPropertyInObject(value, join(result, args, i, n), t);
-            }
-        }
-
-        private static String join(final Object result,
-                                   final List<Object> args, int i, int n) {
-            final StringJoiner sj = new StringJoiner(".");
-            add(sj, result);
-            while (i < n)
-                add(sj, args.get(i++));
-            return sj.toString();
-        }
-
-        // Used to build noSuchPropertyInObject property String
-        private static void add(StringJoiner sj, Object o) {
-            if (o instanceof CharSequence)
-                // Add ("string")
-                sj.add(String.format("(\"%s\")", o));
-            else
-                // Add {type:"string"}
-                sj.add(String.format("{%s:\"%s\"}", o.getClass().getSimpleName(), o));
-        }
-
-        /**
-         * Must call invoke, in case no more properties after last one.
-         */
-        public String toString() {
-            return invoke().toString();
-        }
+    private static void add(final StringJoiner sj, final Object value) {
+      if (value instanceof CharSequence)
+        // Add ("string")
+        sj.add(String.format("(\"%s\")", value));
+      else
+        // Add {type:"string"}
+        sj.add(String.format("{%s:\"%s\"}", value.getClass().getSimpleName(), value));
     }
 
-    /*
-     * model is a ArgsAdaptor, a UnaryOperator.
-     * apply returns the same model object, or the final Object result.
+    private final Interpreter interpreter;
+    private final ST self;
+    private final boolean onlyPublic;
+    private final Class<?> returnType;
+    private final Object value;
+    private final String propertyName;
+    private final MemberInvokers memberInvokers;
+    private final ArrayList<Object> args = new ArrayList<>();
+    /**
+     * Used by last `invoke`.
      */
-    private static final ModelAdaptor<ArgsAdaptor> COMPOSITE_ADAPTER =
-            (interp, self, model, property, propertyName) -> model.apply(property);
+    private MemberInvoker latestMatchingInvoker;
+
+    @SuppressWarnings("SameParameterValue")
+    private ArgsAdaptor(final Interpreter interpreter,
+                        final ST self,
+                        final Object value,
+                        final String propertyName,
+                        final boolean onlyPublic,
+                        final Class<?> returnType,
+                        final MemberInvokers memberInvokers) {
+      this.interpreter = interpreter;
+      this.self = self;
+      this.onlyPublic = onlyPublic;
+      this.returnType = returnType;
+      this.value = value;
+      this.propertyName = propertyName;
+      this.memberInvokers = memberInvokers;
+
+      // Allow for 0 to n args methods
+      final MemberInvoker mi = memberInvokers.find(onlyPublic, returnType, args);
+      if (null != mi)
+        latestMatchingInvoker = mi; // The latest best match for a method/property name
+    }
+
+    /**
+     * @return this or invoke() result
+     */
+    @Override // Implements UnaryOperator<Object>
+    public Object apply(final @NonNull Object property) {
+      args.add(property);
+      // This must be done each time to find the best matching method without, or with any parameters.
+      final MemberInvoker mi = memberInvokers.find(onlyPublic, returnType, args);
+      if (null != mi) // Will be null for parameters
+        latestMatchingInvoker = mi;
+      return args.size() < memberInvokers.maxTypeConverterCount()
+        ? this
+        : invoke(); // No matches after this, so use latestMatchingInvoker
+    }
+
+    // Called by apply or toString.
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private Object invoke() {
+      final int n = args.size();
+      if (null == latestMatchingInvoker)
+        throw STExceptions.noSuchPropertyInObject(value, join(propertyName, args, 0, n),
+                                                  new IllegalArgumentException("No matching method found"));
+      Object result = null;
+      int i = 0;
+      try {
+        // Resolve this for property.
+        result = latestMatchingInvoker.invoke(value, args);
+
+        // Resolve excess properties:
+        //    call getModelAdapter and getProperty, to part/fully resolving property.
+        // Unresolved properties could be other ArgsAdaptor instances!
+        final STGroup stg = self.groupThatCreatedThisInstance;
+        i = latestMatchingInvoker.typeConverterCount();
+        while (i < n) {
+          final Object arg = args.get(i++);
+          final ModelAdaptor ma = stg.getModelAdaptor(arg.getClass()); // Assume never null
+          result = ma.getProperty(interpreter, self, result, arg, arg.toString());
+        }
+        return result;
+      } catch (Throwable t) { // Catch failure of latestMatchingInvoker.invoke or later failure.
+        throw STExceptions.noSuchPropertyInObject(value, join(result, args, i, n), t);
+      }
+    }
+
+    /**
+     * Must call invoke because maybe no more properties.
+     */
+    public String toString() {
+      return invoke().toString();
+    }
+  }
 }
