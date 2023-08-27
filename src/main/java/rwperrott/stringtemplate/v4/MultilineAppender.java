@@ -5,5 +5,5 @@ package rwperrott.stringtemplate.v4;
  */
 interface MultilineAppender {
 
-    boolean appendTo(final MultiLineJoiner mlj, final Object o);
+  boolean appendTo(final MultiLineJoiner mlj, final Object o);
 }

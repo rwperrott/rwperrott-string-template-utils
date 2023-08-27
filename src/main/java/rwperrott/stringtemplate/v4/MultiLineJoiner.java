@@ -7,115 +7,115 @@ import static rwperrott.stringtemplate.v4.Indent.*;
 
 /**
  * A better StringJoiner, which supports nested joins and extension.
- * <p>
+ * <br/>
  * Delimiter is always ","
  *
  * @author rwperrott
  */
 @SuppressWarnings("unused")
 public class MultiLineJoiner {
-    protected final StringBuilder sb;
-    protected final boolean multiline;
-    protected int count;
-    private String suffix;
+  private static void complete0(
+    StringBuilder sb,
+    String suffix,
+    boolean first,
+    boolean multiline) {
+    if (!first && multiline)
+      sb.append("\n");
     //
-    private int mark;
-    private int markCount;
+    if (multiline) {
+      decrement();
+      appendTo(sb);
+    } else
+      sb.append(' ');
+    sb.append(suffix);
+  }
 
-    public MultiLineJoiner(final String prefix,
-                           final String suffix,
-                           final boolean multiline) {
-        this(new StringBuilder(), prefix, suffix, multiline);
-    }
+  protected final StringBuilder sb;
+  protected final boolean multiline;
+  protected int count;
+  private String suffix;
+  //
+  private int mark;
+  private int markCount;
 
-    public MultiLineJoiner(final StringBuilder sb,
-                           final String prefix,
-                           final String suffix,
-                           final boolean multiline) {
-        this.sb = requireNonNull(sb, "sb");
-        this.multiline = multiline;
-        this.suffix = requireNonNull(suffix, "suffix");
-        sb.append(requireNonNull(prefix, "prefix"));
-        if (multiline)
-            increment();
-    }
+  public MultiLineJoiner(final String prefix,
+                         final String suffix,
+                         final boolean multiline) {
+    this(new StringBuilder(), prefix, suffix, multiline);
+  }
 
-    public MultiLineJoiner(final MultiLineJoiner mlj,
-                           final String prefix,
-                           final String suffix) {
-        requireNonNull(mlj, "mlj");
-        this.sb = mlj.sb;
-        this.multiline = mlj.multiline;
-        this.suffix = requireNonNull(suffix, "suffix");
-        sb.append(requireNonNull(prefix, "prefix"));
-        if (multiline)
-            increment();
-    }
+  public MultiLineJoiner(final StringBuilder sb,
+                         final String prefix,
+                         final String suffix,
+                         final boolean multiline) {
+    this.sb = requireNonNull(sb, "sb");
+    this.multiline = multiline;
+    this.suffix = requireNonNull(suffix, "suffix");
+    sb.append(requireNonNull(prefix, "prefix"));
+    if (multiline)
+      increment();
+  }
 
-    private void ensureIncomplete() {
-        if (null == suffix)
-            throw new IllegalStateException("completed");
-    }
+  public MultiLineJoiner(final MultiLineJoiner mlj,
+                         final String prefix,
+                         final String suffix) {
+    requireNonNull(mlj, "mlj");
+    this.sb = mlj.sb;
+    this.multiline = mlj.multiline;
+    this.suffix = requireNonNull(suffix, "suffix");
+    sb.append(requireNonNull(prefix, "prefix"));
+    if (multiline)
+      increment();
+  }
 
-    public StringBuilder sb() {
-        ensureIncomplete();
-        return sb;
-    }
+  private void ensureIncomplete() {
+    if (null == suffix)
+      throw new IllegalStateException("completed");
+  }
 
-    public void reset() {
-        int m = mark;
-        if (m < 0)
-            throw new InvalidMarkException();
-        sb.setLength(m);
-        count = markCount;
-    }
+  public StringBuilder sb() {
+    ensureIncomplete();
+    return sb;
+  }
 
-    public void addName(final String name) {
-        ensureIncomplete();
-        mark();
-        delimit();
-        sb.append(name).append('=');
-    }
+  public void reset() {
+    int m = mark;
+    if (m < 0)
+      throw new InvalidMarkException();
+    sb.setLength(m);
+    count = markCount;
+  }
 
-    public void mark() {
-        mark = sb.length();
-        markCount = count;
-    }
+  public void addName(final String name) {
+    ensureIncomplete();
+    mark();
+    delimit();
+    sb.append(name).append('=');
+  }
 
-    public void delimit() {
-        ensureIncomplete();
-        if (count++ > 0) {
-            sb.append(multiline ? ",\n" : ", ");
-            if (multiline)
-                appendTo(sb);
-        }
-    }
+  public void mark() {
+    mark = sb.length();
+    markCount = count;
+  }
 
-    public void complete() {
-        if (null != suffix) {
-            complete0(sb, suffix, 0 == count, multiline);
-            suffix = null;
-        }
+  public void delimit() {
+    ensureIncomplete();
+    if (count++ > 0) {
+      sb.append(multiline ? ",\n" : ", ");
+      if (multiline)
+        appendTo(sb);
     }
+  }
 
-    private static void complete0(
-            StringBuilder sb,
-            String suffix,
-            boolean first,
-            boolean multiline) {
-        if (!first && multiline)
-            sb.append("\n");
-        //
-        if (multiline) {
-            decrement();
-            appendTo(sb);
-        } else
-            sb.append(' ');
-        sb.append(suffix);
+  public void complete() {
+    if (null != suffix) {
+      complete0(sb, suffix, 0 == count, multiline);
+      suffix = null;
     }
+  }
 
-    @Override
-    public String toString() {
-        return sb.toString();
-    }
+  @Override
+  public String toString() {
+    return sb.toString();
+  }
 }
