@@ -2,6 +2,7 @@ package rwperrott.stringtemplate.v4;
 
 import org.stringtemplate.v4.ST;
 
+import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -42,12 +43,33 @@ public final class ToStringBuilder extends MultiLineJoiner {
       reset();
   }
 
-  @Override
-  public String toString() {
-    return sb.toString();
-  }
-
   private enum Append implements MultilineAppender {
+    OBJECT(Object.class) {
+      @Override
+      public boolean appendTo(final MultiLineJoiner mlj, final Object o) {
+        final boolean isNull = null == o;
+        mlj.sb().append(isNull ? "null" : o);
+        return !isNull;
+      }
+    },
+    ARRAY(null) {
+      @Override
+      public boolean appendTo(final MultiLineJoiner mlj, final Object o) {
+        final int len = Array.getLength(o);
+        if (0 == len) {
+          mlj.sb().append("[]");
+          return false;
+        }
+        final MultiLineJoiner j = new MultiLineJoiner(mlj, "[", "]");
+        for (int i = 0; i < len; i++) {
+          Object v = Array.get(o, i);
+          j.delimit();
+          Append.toString(mlj, v);
+        }
+        j.complete();
+        return true;
+      }
+    },
     STRING(CharSequence.class) {
       @Override
       public boolean appendTo(final MultiLineJoiner mlj, final Object o) {
@@ -102,14 +124,6 @@ public final class ToStringBuilder extends MultiLineJoiner {
         ts.complete();
         return true;
       }
-    },
-    OBJECT(Object.class) {
-      @Override
-      public boolean appendTo(final MultiLineJoiner mlj, final Object o) {
-        final boolean isNull = null == o;
-        mlj.sb().append(isNull ? "null" : o);
-        return !isNull;
-      }
     };
 
     private static final Map<Class<?>, MultilineAppender> APPENDER_MAP;
@@ -118,33 +132,32 @@ public final class ToStringBuilder extends MultiLineJoiner {
       final Append[] appends = values();
       final STGroupType[] stGroupTypes = STGroupType.values();
       final Map<Class<?>, MultilineAppender> map = new LinkedHashMap<>(appends.length + stGroupTypes.length);
-      for (Append e : appends) {
-        if (e != OBJECT) {
+      for (Append e : appends)
+        if (e != OBJECT && e != ARRAY)
           map.put(e.cls, e);
-        }
-      }
-      for (STGroupType e : stGroupTypes) {
+      for (STGroupType e : stGroupTypes)
         map.put(e.stGroupClass, e);
-      }
       APPENDER_MAP = map;
     }
 
     public static boolean toString(final MultiLineJoiner mlj, final Object o) {
-      if (null == o) {
+      if (null == o)
         return OBJECT.appendTo(mlj, null);
-      }
+      //
       final Map<Class<?>, MultilineAppender> appenderMap = APPENDER_MAP;
       final MultilineAppender appender;
-      synchronized (appenderMap) {
-        appender = appenderMap.computeIfAbsent(o.getClass(), k -> {
-          for (Map.Entry<Class<?>, MultilineAppender> e : appenderMap.entrySet()) {
-            if (e.getKey().isAssignableFrom(k)) {
-              return e.getValue();
-            }
-          }
-          return OBJECT;
-        });
-      }
+      final Class<?> type = o.getClass();
+      if (type.isArray())
+        appender = ARRAY;
+      else
+        synchronized (appenderMap) {
+          appender = appenderMap.computeIfAbsent(type, k -> {
+            for (Map.Entry<Class<?>, MultilineAppender> e : appenderMap.entrySet())
+              if (e.getKey().isAssignableFrom(k))
+                return e.getValue();
+            return OBJECT;
+          });
+        }
       return appender.appendTo(mlj, o);
     }
 
